@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="no-referrer">
+    <base target="_top">
+    <title>English Adventure: My Daily Routine</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Styles -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Fredoka', sans-serif;
+            background-color: #e0f2fe;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.3); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.4); }
+        
+        @media (min-width: 1280px) {
+            .custom-scrollbar::-webkit-scrollbar { width: 12px; }
+        }
+        
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(-2%); }
+            50% { transform: translateY(2%); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+        
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+
+        @keyframes pop-in {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .text-outline { text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHeIBrL9ZT7nfVE0TZDdmkFoVrvjy-8FWM8Ej-iCwFey3bIj1GWAWxhfUMr2bqTyZs/exec"; 
+
+        // --- WEB AUDIO API (SOUND EFFECTS) ---
+        let audioCtx = null;
+        const playSfx = (type) => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return; 
+
+                if (!audioCtx) {
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                if (type === 'correct') {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                    oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); 
+                    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'incorrect') {
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(150, audioCtx.currentTime); 
+                    oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2); 
+                    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.2);
+                }
+            } catch (err) {
+                console.warn("Efek suara tidak didukung atau diblokir browser.", err);
+            }
+        };
+
+        const shuffleArray = (array) => {
+            const newArr = [...array];
+            for (let i = newArr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+            }
+            return newArr;
+        };
+
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+        );
+
+        const Icons = {
+            Map: ({className}) => <Icon className={className} path={<><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></>} />,
+            Star: ({className}) => <Icon className={className} path={<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>} />,
+            Users: ({className}) => <Icon className={className} path={<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></>} />,
+            User: ({className}) => <Icon className={className} path={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></>} />,
+            School: ({className}) => <Icon className={className} path={<><path d="M4 6h16"></path><path d="M4 6v14"></path><path d="M20 6v14"></path><path d="M12 22V10"></path><path d="M4 10h16"></path><path d="M4 14h16"></path><path d="M4 18h16"></path><path d="M12 2l-8 4h16z"></path></>} />,
+            ArrowRight: ({className}) => <Icon className={className} path={<><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></>} />,
+            Award: ({className}) => <Icon className={className} path={<><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></>} />,
+            BookOpen: ({className}) => <Icon className={className} path={<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></>} />,
+            CheckCircle: ({className}) => <Icon className={className} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></>} />,
+            Menu: ({className}) => <Icon className={className} path={<><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>} />,
+            X: ({className}) => <Icon className={className} path={<><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></>} />,
+            Maximize: ({className}) => <Icon className={className} path={<><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></>} />,
+            Minimize: ({className}) => <Icon className={className} path={<><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></>} />,
+            RefreshCcw: ({className}) => <Icon className={className} path={<><polyline points="1 23 1 17 7 17"></polyline><polyline points="23 1 23 7 17 7"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></>} />,
+            Home: ({className}) => <Icon className={className} path={<><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></>} />,
+            Lock: ({className}) => <Icon className={className} path={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></>} />,
+            Save: ({className}) => <Icon className={className} path={<><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></>} />,
+            Volume2: ({className}) => <Icon className={className} path={<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.75"></path></>} />,
+            VolumeX: ({className}) => <Icon className={className} path={<><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></>} />,
+        };
+
+        // --- DIRECT IMAGE URLS ---
+        const LOGO_IMAGE_URL = "https://i.imgur.com/kOmfHvx.png"; 
+        const MAIN_BG_IMAGE = "https://i.imgur.com/x9dDJgD.png"; 
+        const MAP_IMAGE_URL = "https://i.imgur.com/84lyoWA.png"; 
+        const BACKSONG_URL = "https://github.com/belajarituseru39-gif/marsedalas/raw/refs/heads/main/MARS%20SD%20011%20Bppn.mp3"; 
+
+        const BG_LEVEL_1 = "https://i.imgur.com/ceFxSwa.png"; 
+        const BG_LEVEL_2 = "https://i.imgur.com/nKi9A6x.png"; 
+        const BG_LEVEL_3 = "https://i.imgur.com/Z5aQvbC.png"; 
+        const BG_LEVEL_4 = "https://i.imgur.com/V0giZGn.png"; 
+        const BG_LEVEL_5 = "https://i.imgur.com/sPF7Vgx.png"; 
+
+        const MAP_POSITIONS = [
+            { level: 1, top: '42%', left: '18%' }, 
+            { level: 2, top: '78%', left: '35%' }, 
+            { level: 3, top: '32%', left: '44%' }, 
+            { level: 4, top: '48%', left: '65%' }, 
+            { level: 5, top: '55%', left: '88%' }, 
+        ];
+
+        const LEVEL_DATA = {
+            1: {
+                title: "Area 1: Daily Vocabulary",
+                subtitle: "Misi: Mencocokkan Kosakata",
+                instruction: "Tarik kata kerja (verb) di kotak putih menuju pelengkapnya di sebelah kanan agar menjadi aktivitas harian yang benar!",
+                items: [
+                    { id: 'v1', text: 'Take', matchId: 'm1' },
+                    { id: 'v2', text: 'Wake', matchId: 'm2' },
+                    { id: 'v3', text: 'Have', matchId: 'm3' },
+                    { id: 'v4', text: 'Go', matchId: 'm4' },
+                    { id: 'v5', text: 'Play', matchId: 'm5' },
+                    { id: 'v6', text: 'Read', matchId: 'm6' },
+                ],
+                targets: [
+                    { id: 'm1', label: '___ a bath 🚿' },
+                    { id: 'm2', label: '___ up 🌅' },
+                    { id: 'm3', label: '___ breakfast 🍳' },
+                    { id: 'm4', label: '___ to school 🏫' },
+                    { id: 'm5', label: '___ with friends ⚽' },
+                    { id: 'm6', label: '___ a book 📖' },
+                ]
+            },
+            2: {
+                title: "Area 2: Simple Present Rules",
+                subtitle: "Misi: Tata Bahasa (Grammar)",
+                parts: [
+                    {
+                        stimulusTitle: "🟣 STIMULUS: Rina's Morning",
+                        stimulusText: "Hello, my name is Rina. I am a student in the 5th grade. Every day, I wake up at 5.00 AM. After that, I take a bath and wear my school uniform.\n\nMy mother cooks fried rice for breakfast every morning. My brother, Budi, doesn't like fried rice. He eats bread and drinks milk. \n\nWe go to school at 6.30 AM by bicycle. My father goes to his office by car.",
+                        questions: [
+                            {
+                                id: 'q1', type: 'single',
+                                text: "1. What time does Rina wake up?",
+                                options: ["At 5.00 AM", "At 6.30 AM", "At 5.30 AM", "At 6.00 AM"],
+                                correct: 0
+                            },
+                            {
+                                id: 'q2', type: 'single',
+                                text: "2. Choose the correct word to complete: My mother ___ fried rice every morning.",
+                                options: ["cook", "cooks", "cooking", "cooked"],
+                                correct: 1
+                            },
+                            {
+                                id: 'q3', type: 'single',
+                                text: "3. Choose the correct word to complete: We ___ to school at 6.30 AM.",
+                                options: ["goes", "going", "go", "went"],
+                                correct: 2
+                            },
+                            {
+                                id: 'q4', type: 'single',
+                                text: "4. Choose the correct word to complete: Budi ___ like fried rice.",
+                                options: ["do not", "doesn't", "don't", "is not"],
+                                correct: 1
+                            },
+                            {
+                                id: 'q5', type: 'multiple',
+                                text: "5. (Pilihan Ganda Kompleks) Manakah pernyataan di bawah ini yang BENAR sesuai teks? (Pilih 2 jawaban)",
+                                options: ["Budi eats bread for breakfast.", "Rina goes to school by car.", "Rina's father goes to the office by car.", "Rina takes a bath at night."],
+                                correct: [0, 2]
+                            }
+                        ]
+                    }
+                ]
+            },
+            3: {
+                title: "Area 3: Sentence Analysis",
+                subtitle: "Misi: Analisis Kalimat (Benar/Salah)",
+                stimulusTitle: "🟣 RULES OF SIMPLE PRESENT TENSE",
+                stimulusText: "Ingat kembali aturan penulisan kalimat Simple Present Tense untuk rutinitas sehari-hari:\n\n1. Jika Subjeknya I, You, We, They ➡️ Gunakan Verb 1 (tanpa tambahan s/es) dan gunakan \"do not\" (don't) untuk kalimat negatif.\nContoh: I go to school. They don't like apple.\n\n2. Jika Subjeknya He, She, It (atau nama orang tunggal) ➡️ Tambahkan s/es pada Verb 1 dan gunakan \"does not\" (doesn't) untuk kalimat negatif.\nContoh: She goes to school. He doesn't like apple.\n\nSekarang analisislah kalimat-kalimat di samping, apakah secara tata bahasa (grammar) sudah benar atau salah?",
+                questions: [
+                    {
+                        id: 'k1', text: "1. I goes to school every day.",
+                        correctStatement: 'Salah',
+                        reasonOptions: ["Karena Subjek 'I' harusnya menggunakan kata kerja tanpa s/es (go).", "Karena Subjek 'I' sudah benar menggunakan s/es.", "Karena kalimatnya tidak memiliki keterangan waktu.", "Karena kata 'school' harusnya huruf besar."],
+                        correctReasonIndex: 0
+                    },
+                    {
+                        id: 'k2', text: "2. She plays tennis in the afternoon.",
+                        correctStatement: 'Benar',
+                        reasonOptions: ["Karena Subjek 'She' tidak boleh menggunakan akhiran s/es.", "Karena Subjek 'She' adalah orang ketiga tunggal, sehingga kata kerjanya ditambah s/es.", "Karena kata 'plays' seharusnya 'playing'.", "Karena kalimatnya berbentuk pertanyaan."],
+                        correctReasonIndex: 1
+                    },
+                    {
+                        id: 'k3', text: "3. They doesn't wake up at 5 AM.",
+                        correctStatement: 'Salah',
+                        reasonOptions: ["Karena Subjek 'They' sudah benar menggunakan doesn't.", "Karena kalimat negatif harusnya menggunakan 'not do'.", "Karena Subjek 'They' seharusnya menggunakan 'don't' (do not).", "Karena 'wake up' seharusnya 'wakes up'."],
+                        correctReasonIndex: 2
+                    },
+                    {
+                        id: 'k4', text: "4. Does he take a bath in the morning?",
+                        correctStatement: 'Benar',
+                        reasonOptions: ["Karena kalimat tanya untuk Subjek 'He' menggunakan 'Does'.", "Karena kalimat tanya harus menggunakan 'Do'.", "Karena kata kerjanya harus ditambah s/es menjadi 'takes'.", "Karena Subjek 'He' tidak bisa diletakkan setelah Does."],
+                        correctReasonIndex: 0
+                    },
+                    {
+                        id: 'k5', text: "5. Budi and Andi plays football together.",
+                        correctStatement: 'Salah',
+                        reasonOptions: ["Karena kalimatnya kurang panjang.", "Karena 'Budi and Andi' adalah jamak (They), sehingga kata kerjanya harusnya 'play' tanpa s/es.", "Karena 'Budi and Andi' adalah tunggal (He).", "Karena sudah benar menggunakan plays."],
+                        correctReasonIndex: 1
+                    }
+                ]
+            },
+            4: {
+                title: "Area 4: Writing a Paragraph",
+                subtitle: "Misi: Melengkapi Paragraf",
+                stimulusTitle: "🟣 MY DAILY ROUTINE",
+                stimulusText: "Lengkapi cerita rutinitas harian Andi di bawah ini dengan kata kerja (verb) yang tepat!\n\nIngat aturan Simple Present Tense: Jika menceritakan diri sendiri (I), gunakan kata kerja dasar. Jika menceritakan orang lain yang tunggal (My father, He, She), gunakan kata kerja berakhiran -s/es.",
+                paragraphs: [
+                    {
+                        id: 'p1',
+                        title: "",
+                        sentences: [
+                            { id: 's1', before: "Hello, my name is Andi. I usually ", blankId: 'b1', after: " at 05.00 AM. ", correct: "wake up" },
+                            { id: 's2', before: "After that, I ", blankId: 'b2', after: " a bath and wear my school uniform. ", correct: "take" },
+                            { id: 's3', before: "I always ", blankId: 'b3', after: " breakfast with my family. ", correct: "have" },
+                            { id: 's4', before: "My father ", blankId: 'b4', after: " to work by car. ", correct: "goes" },
+                            { id: 's5', before: "And I ", blankId: 'b5', after: " to school by bicycle.", correct: "go" }
+                        ]
+                    }
+                ],
+                words: [
+                    { id: 'w1', text: 'wake up' },
+                    { id: 'w2', text: 'take' },
+                    { id: 'w3', text: 'have' },
+                    { id: 'w4', text: 'goes' },
+                    { id: 'w5', text: 'go' },
+                    { id: 'w6', text: 'wakes up' }, 
+                    { id: 'w7', text: 'has' }      
+                ]
+            },
+            5: {
+                title: "Area 5: Sentence Transformation",
+                subtitle: "Misi: Membuat Kalimat (Negatif & Tanya)",
+                stimulusTitle: "🟣 MISSION: TRANSFORM THE SENTENCES",
+                stimulusText: "Ubah 10 kalimat positif (+) di samping ini menjadi kalimat negatif (-) dan kalimat tanya (?) menggunakan aturan Simple Present Tense yang sudah kamu pelajari!\n\nIngat ya:\n• Jika Subjek I, You, They, We gunakan do not (don't) / Do.\n• Jika Subjek He, She, It (Tunggal) gunakan does not (doesn't) / Does, dan hapus s/es pada Verb-nya.",
+                sentences: [
+                    "I wake up at 5 AM.",
+                    "She eats an apple.",
+                    "They play football.",
+                    "He goes to school.",
+                    "We study English.",
+                    "The cat sleeps on the sofa.",
+                    "You like ice cream.",
+                    "My father reads a newspaper.",
+                    "Rina and Budi watch TV.",
+                    "It rains a lot."
+                ],
+                reflection: "4️⃣ Refleksi Akhir\nWhat did you learn today? Apakah kamu sudah mengerti cara membuat kalimat Simple Present Tense yang benar?"
+            }
+        };
+
+        const VIDEO_QUESTIONS = [
+            {
+                id: 'vq1',
+                text: "1. Kata kerja manakah yang biasa digunakan untuk rutinitas 'Bangun Tidur'?",
+                options: ["Take a bath", "Wake up", "Have breakfast", "Go to school"],
+                correct: 1
+            },
+            {
+                id: 'vq2',
+                text: "2. Dalam Simple Present Tense, subjek 'She' atau 'He' harus diikuti oleh kata kerja (Verb) yang memiliki ciri khusus. Apa cirinya?",
+                options: ["Ditambah -ing (contoh: playing)", "Tidak berubah (contoh: play)", "Menggunakan 'Are'", "Ditambah huruf -s / -es (contoh: plays)"],
+                correct: 3
+            },
+            {
+                id: 'vq3',
+                text: "3. Kalimat manakah di bawah ini yang menggunakan Simple Present Tense dengan BENAR?",
+                options: ["I goes to sleep at 9 PM.", "She eat breakfast every morning.", "They play football in the afternoon.", "He do not like milk."],
+                correct: 2
+            }
+        ];
+
+        const PRACTICE_QUESTIONS = [
+            { id: 'pq1', text: 'I ... at 5.00 AM in the morning.', matchId: 'optB' },
+            { id: 'pq2', text: 'She ... breakfast with her family.', matchId: 'optD' },
+            { id: 'pq3', text: 'We ... to school by bus.', matchId: 'optA' },
+            { id: 'pq4', text: 'My father ... a newspaper every morning.', matchId: 'optC' },
+            { id: 'pq5', text: 'They ... football in the afternoon.', matchId: 'optE' }
+        ];
+
+        const PRACTICE_OPTIONS = [
+            { id: 'optA', text: 'go' },
+            { id: 'optB', text: 'wake up' },
+            { id: 'optC', text: 'reads' },
+            { id: 'optD', text: 'has' },
+            { id: 'optE', text: 'play' },
+            { id: 'optF', text: 'goes' } // Distractor
+        ];
+
+        // --- KOMPONEN UTAMA ---
+
+        function PetualanganBhinneka() {
+            const [currentView, setCurrentView] = useState('intro'); 
+            const [unlockedLevel, setUnlockedLevel] = useState(1); 
+            const [correctCount, setCorrectCount] = useState(0); 
+            const [userData, setUserData] = useState({});
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            const [isFullscreen, setIsFullscreen] = useState(false);
+            const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+            
+            const [playerName, setPlayerName] = useState("");
+            const [playerSchool, setPlayerSchool] = useState("");
+
+            const audioRef = useRef(null);
+
+            useEffect(() => {
+                if (audioRef.current) {
+                    if (isMusicPlaying) {
+                        const playPromise = audioRef.current.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log("Autoplay blocked/failed:", error);
+                                setIsMusicPlaying(false);
+                            });
+                        }
+                    } else {
+                        audioRef.current.pause();
+                    }
+                }
+            }, [isMusicPlaying]);
+
+            const toggleMusic = () => setIsMusicPlaying(!isMusicPlaying);
+
+            const handleStartGame = (name, school) => {
+                setPlayerName(name);
+                setPlayerSchool(school);
+                setCurrentView('tujuan_panduan'); 
+                setIsMusicPlaying(true); 
+            };
+
+            const handleLevelComplete = (levelNum) => {
+                if (levelNum < 5) {
+                    setUnlockedLevel(prev => Math.max(prev, levelNum + 1));
+                    setCurrentView('map');
+                } else {
+                    setCurrentView('end');
+                }
+            };
+
+            const startLevel = (levelNum) => {
+                setCurrentView(`level${levelNum}`);
+            };
+
+            const updateUserData = (key, value) => setUserData(prev => ({ ...prev, [key]: value }));
+            const incrementCorrect = () => setCorrectCount(prev => prev + 1);
+
+            const toggleFullscreen = () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch((e) => console.log(e));
+                    setIsFullscreen(true);
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                        setIsFullscreen(false);
+                    }
+                }
+            };
+
+            const getBackgroundImage = () => {
+                switch (currentView) {
+                    case 'level1': return BG_LEVEL_1;
+                    case 'level2': return BG_LEVEL_2;
+                    case 'level3': return BG_LEVEL_3;
+                    case 'level4': return BG_LEVEL_4;
+                    case 'level5': return BG_LEVEL_5;
+                    default: return MAIN_BG_IMAGE;
+                }
+            };
+
+            let currentIslandName = "";
+            let currentMission = "";
+            let currentIcon = "";
+            if (currentView.startsWith('level')) {
+                const lvl = parseInt(currentView.replace('level', ''));
+                if (LEVEL_DATA[lvl]) {
+                    currentIslandName = LEVEL_DATA[lvl].title;
+                    currentMission = LEVEL_DATA[lvl].subtitle;
+                    const icons = ["", "🧩", "📝", "🧐", "📝", "🎯"];
+                    currentIcon = icons[lvl];
+                }
+            }
+
+            return (
+                <div className="h-screen w-screen font-sans text-gray-800 flex flex-col transition-all duration-700 ease-in-out overflow-hidden"
+                     style={{ 
+                       backgroundImage: `url(${getBackgroundImage()})`,
+                       backgroundSize: 'cover',
+                       backgroundPosition: 'center',
+                       backgroundAttachment: 'fixed',
+                     }}>
+                  
+                  <audio ref={audioRef} src={BACKSONG_URL} loop />
+                  <div className="fixed inset-0 bg-black/10 pointer-events-none z-0 transition-opacity duration-700"></div>
+
+                  <div className="flex flex-col w-full max-w-[1600px] mx-auto h-full shadow-2xl bg-white/30 backdrop-blur-sm relative z-10 border-x border-white/40">
+                    
+                    {/* Header Top Bar */}
+                    <div className="flex-none z-40 bg-gradient-to-r from-sky-400 to-teal-400 p-2 md:p-3 xl:p-4 text-white flex justify-between items-center shadow-md rounded-b-xl mx-2 mt-2 gap-2">
+                        {/* Kiri: Logo & Menu */}
+                        <div className="flex items-center gap-2 md:gap-3 xl:gap-4 flex-shrink-0 w-1/4">
+                             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-1.5 xl:p-2 hover:bg-white/20 rounded-full transition">
+                               {isMenuOpen ? <Icons.X className="w-6 h-6 xl:w-8 xl:h-8" /> : <Icons.Menu className="w-6 h-6 xl:w-8 xl:h-8" />}
+                             </button>
+                             <img src={LOGO_IMAGE_URL} alt="Logo" className="w-8 h-8 xl:w-12 xl:h-12 object-contain drop-shadow-md hidden sm:block" />
+                             <div className="hidden lg:flex flex-col">
+                               <h1 className="font-bold text-lg xl:text-xl 2xl:text-2xl leading-none drop-shadow-md tracking-wide">English Adventure</h1>
+                             </div>
+                        </div>
+
+                        {/* Tengah: Nama Pulau & Misi */}
+                        <div className="flex-1 flex flex-col items-center justify-center text-center overflow-hidden">
+                            {currentIslandName ? (
+                                <>
+                                    <div className="flex items-center bg-white/20 px-3 md:px-5 py-1 xl:py-1.5 rounded-full text-xs md:text-base xl:text-xl font-bold text-white border border-white/30 shadow-inner whitespace-nowrap">
+                                        <span className="mr-1 xl:mr-2 text-base md:text-xl xl:text-2xl">{currentIcon}</span> {currentIslandName}
+                                    </div>
+                                    <div className="text-[10px] md:text-xs xl:text-sm font-bold text-sky-100 mt-1 bg-black/20 px-3 md:px-5 py-0.5 xl:py-1 rounded-full truncate max-w-full">
+                                        {currentMission}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center lg:hidden">
+                                    <h1 className="font-bold text-base leading-none drop-shadow-md tracking-wide">English Adventure</h1>
+                                    {playerName && <div className="text-[10px] text-sky-100 font-medium mt-1">Halo, {playerName}!</div>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Kanan: Musik & Bintang */}
+                        <div className="flex items-center gap-2 md:gap-3 xl:gap-5 flex-shrink-0 w-1/4 justify-end">
+                            <button onClick={toggleMusic} className="p-1.5 xl:p-2 hover:bg-white/20 rounded-full transition">
+                               {isMusicPlaying ? <Icons.Volume2 className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8"/> : <Icons.VolumeX className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8"/>}
+                            </button>
+                            <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 xl:px-5 xl:py-2 rounded-full text-sm md:text-base xl:text-xl border border-white/20 shadow-inner">
+                              <Icons.Star className="w-4 h-4 md:w-5 md:h-5 xl:w-6 xl:h-6 text-yellow-300 fill-yellow-300 animate-pulse" />
+                              <span className="font-bold text-white">{correctCount} / 21</span>
+                            </div>
+                            <button onClick={toggleFullscreen} className="p-1.5 xl:p-2 hover:bg-white/20 rounded-full hidden sm:block transition">
+                               {isFullscreen ? <Icons.Minimize className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8"/> : <Icons.Maximize className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8"/>}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Menu Overlay */}
+                    {isMenuOpen && (
+                      <div className="absolute top-[70px] md:top-[90px] xl:top-[100px] left-2 w-64 md:w-72 xl:w-80 bg-white/95 backdrop-blur-md shadow-2xl z-50 rounded-xl xl:rounded-2xl border-2 border-sky-100 animate-fade-in overflow-hidden">
+                          <div className="p-4 xl:p-5 space-y-3 xl:space-y-4">
+                            <div className="font-bold text-sky-600 uppercase text-xs xl:text-sm tracking-wider mb-2 border-b pb-2">Navigasi</div>
+                            <button onClick={() => {setCurrentView('map'); setIsMenuOpen(false)}} className="w-full text-left p-3 rounded-lg flex items-center gap-3 xl:gap-4 hover:bg-sky-50 text-gray-700 font-bold text-sm md:text-base xl:text-lg">
+                               <Icons.Map className="w-5 h-5 xl:w-6 xl:h-6 text-sky-500" /> Peta Perjalanan
+                            </button>
+                            <button onClick={() => {setCurrentView('intro'); setIsMenuOpen(false)}} className="w-full text-left p-3 rounded-lg flex items-center gap-3 xl:gap-4 hover:bg-sky-50 text-gray-700 font-bold text-sm md:text-base xl:text-lg">
+                               <Icons.Home className="w-5 h-5 xl:w-6 xl:h-6 text-sky-500" /> Halaman Utama
+                            </button>
+                            <hr className="my-2 border-gray-100" />
+                            <button onClick={() => window.location.reload()} className="w-full text-left p-3 rounded-lg flex items-center gap-3 xl:gap-4 text-red-500 hover:bg-red-50 font-bold text-sm md:text-base xl:text-lg">
+                              <Icons.RefreshCcw className="w-5 h-5 xl:w-6 xl:h-6" /> Mulai Ulang Game
+                            </button>
+                          </div>
+                      </div>
+                    )}
+
+                    {/* Content Area */}
+                    <main className="flex-grow flex flex-col min-h-0 overflow-y-auto custom-scrollbar relative">
+                        <div className={`flex flex-col flex-grow w-full mx-auto p-2 md:p-4 xl:p-6 ${currentView === 'intro' || currentView === 'tujuan_panduan' || currentView === 'materi' || currentView === 'map' ? 'justify-center items-center' : ''}`}>
+                            {currentView === 'intro' && <IntroScreen onStart={handleStartGame} />}
+                            {currentView === 'tujuan_panduan' && <TujuanPanduanScreen onNext={() => setCurrentView('materi')} />}
+                            {currentView === 'materi' && <MateriScreen onNext={() => setCurrentView('map')} />}
+                            {currentView === 'map' && <MapScreen unlockedLevel={unlockedLevel} onLevelSelect={startLevel} onFinish={() => setCurrentView('end')} isCompleted={unlockedLevel > 5} />}
+                            {currentView === 'level1' && <Level1Sumatera onComplete={() => handleLevelComplete(1)} onCorrect={incrementCorrect} />}
+                            {currentView === 'level2' && <Level2Jawa onComplete={() => handleLevelComplete(2)} onCorrect={incrementCorrect} />}
+                            {currentView === 'level3' && <Level3Kalimantan onComplete={() => handleLevelComplete(3)} onCorrect={incrementCorrect} />}
+                            {currentView === 'level4' && <Level4Sulawesi onComplete={() => handleLevelComplete(4)} onCorrect={incrementCorrect} />}
+                            {currentView === 'level5' && <Level5Papua onComplete={() => handleLevelComplete(5)} saveRef={(val) => updateUserData('ref5', val)} saveData={updateUserData} />}
+                            {currentView === 'end' && <EndScreen userData={userData} correctCount={correctCount} playerName={playerName} playerSchool={playerSchool} onRestart={() => window.location.reload()} />}
+                        </div>
+                    </main>
+
+                  </div>
+                </div>
+            );
+        }
+
+        // --- STATIC INTRO SCREEN ---
+        function IntroScreen({ onStart }) {
+            const [name, setName] = useState("");
+            const [school, setSchool] = useState("");
+            const [showError, setShowError] = useState(false);
+
+            const handleStartClick = () => {
+                if (name.trim().length > 0 && school.trim().length > 0) {
+                    onStart(name, school);
+                } else {
+                    setShowError(true);
+                    setTimeout(() => setShowError(false), 3000); 
+                }
+            };
+
+            return (
+                <div className="w-full flex flex-col justify-center items-center gap-4 xl:gap-6 animate-fade-in flex-1 min-h-0">
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-4 xl:gap-8 bg-white/85 p-4 xl:p-6 rounded-3xl backdrop-blur-sm shadow-md border border-white/50 w-full max-w-4xl xl:max-w-5xl">
+                    <img src={LOGO_IMAGE_URL} alt="Logo" className="w-24 md:w-32 xl:w-40 h-auto object-contain animate-bounce-slow drop-shadow-xl" />
+                    <div className="text-center md:text-left">
+                        <h2 className="text-4xl md:text-5xl xl:text-6xl font-extrabold text-sky-800 drop-shadow-sm leading-tight">English Adventure</h2>
+                        <div className="flex flex-col sm:flex-row items-center gap-2 mt-3 xl:mt-4">
+                            <p className="text-sm md:text-base xl:text-xl text-teal-600 font-bold bg-teal-50 inline-block px-4 py-1.5 xl:py-2 rounded-full border border-teal-200">My Daily Routine</p>
+                            <p className="text-sm md:text-base xl:text-xl text-purple-600 font-bold bg-purple-50 inline-block px-4 py-1.5 xl:py-2 rounded-full border border-purple-200">Fase C - Kelas 5 SD</p>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col lg:flex-row w-full max-w-4xl xl:max-w-5xl gap-4 xl:gap-6 h-auto">
+                    <div className="flex-1 bg-white/95 p-5 xl:p-8 rounded-3xl shadow-lg border-2 border-sky-200 backdrop-blur-md flex flex-col justify-center">
+                        <p className="text-gray-700 text-sm md:text-base xl:text-xl leading-relaxed xl:leading-loose font-medium">
+                            "Hello, Kids! Hari ini kita akan berpetualang belajar Bahasa Inggris. Kalian akan mempelajari cara menceritakan rutinitas kegiatan sehari-hari (Daily Routine) menggunakan aturan Simple Present Tense.
+                            <br/><br/>
+                            Selesaikan setiap misi di seluruh area untuk mengumpulkan bintang. Jika semua misi selesai, kalian akan menjadi <span className="text-orange-600 font-bold">English Master</span>!"
+                        </p>
+                    </div>
+
+                    <div className="flex-1 w-full bg-yellow-50/95 p-5 xl:p-8 rounded-3xl border-2 border-yellow-300 shadow-lg relative flex flex-col justify-center">
+                        <h3 className="font-bold text-yellow-800 mb-4 flex items-center justify-center gap-2 text-sm md:text-base xl:text-xl uppercase tracking-wide border-b border-yellow-200 pb-2 xl:pb-3">
+                            <Icons.Users className="w-5 h-5 xl:w-6 xl:h-6" /> Data Diri Siswa
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <span className="absolute left-3 xl:left-4 top-3 w-5 h-5 xl:w-6 xl:h-6 text-gray-400"><Icons.User className="w-5 h-5 xl:w-6 xl:h-6"/></span>
+                                <input type="text" placeholder="Tulis namamu..." className={`w-full pl-10 xl:pl-12 p-3 xl:p-3.5 text-sm md:text-base xl:text-lg rounded-xl border outline-none font-medium text-gray-700 ${showError && name.length === 0 ? 'border-red-500 bg-red-50' : 'border-yellow-300 focus:border-orange-400'}`} value={name} onChange={(e) => setName(e.target.value)} />
+                            </div>
+                            <div className="relative">
+                                <span className="absolute left-3 xl:left-4 top-3 w-5 h-5 xl:w-6 xl:h-6 text-gray-400"><Icons.School className="w-5 h-5 xl:w-6 xl:h-6"/></span>
+                                <input type="text" placeholder="Tulis nama sekolahmu..." className={`w-full pl-10 xl:pl-12 p-3 xl:p-3.5 text-sm md:text-base xl:text-lg rounded-xl border outline-none font-medium text-gray-700 ${showError && school.length === 0 ? 'border-red-500 bg-red-50' : 'border-yellow-300 focus:border-orange-400'}`} value={school} onChange={(e) => setSchool(e.target.value)} />
+                            </div>
+                        </div>
+                        
+                        {showError && (
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] bg-red-100 border-2 border-red-400 text-red-700 px-4 py-3 rounded-xl flex flex-col items-center justify-center text-sm xl:text-base text-center shadow-2xl z-20">
+                              <span className="font-bold">Isi Nama & Sekolah dulu ya!</span>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col-reverse md:flex-row items-center justify-between w-full max-w-4xl xl:max-w-5xl gap-4 mt-2">
+                    <div className="text-xs xl:text-sm text-gray-600 bg-white/70 px-4 py-2 xl:py-3 rounded-xl shadow-sm border border-white/50 backdrop-blur-sm text-center md:text-left leading-tight">
+                        <span className="font-bold text-sky-800">Ide Pengembang: Abdul Rahmat, S.Pd</span><br/>
+                        SDN 011 Balikpapan Tengah
+                    </div>
+
+                    <button onClick={handleStartClick} className="bg-gradient-to-b from-green-500 to-green-600 text-white font-black hover:from-green-400 hover:to-green-500 transition-all border-b-4 border-green-700 active:border-b-0 py-3 xl:py-4 px-8 xl:px-12 rounded-full shadow-lg active:shadow-none active:translate-y-1 flex items-center gap-2 justify-center text-lg xl:text-2xl w-full md:w-auto">
+                        Mulai <Icons.ArrowRight className="w-5 h-5 xl:w-7 xl:h-7" />
+                    </button>
+                  </div>
+                </div>
+            );
+        }
+
+        // --- TUJUAN & PANDUAN SCREEN ---
+        function TujuanPanduanScreen({ onNext }) {
+            return (
+                <div className="w-full h-full flex flex-col justify-center items-center animate-fade-in flex-1 min-h-0">
+                    <div className="bg-white/95 p-4 md:p-8 xl:p-10 rounded-3xl shadow-xl border-2 border-sky-200 backdrop-blur-md w-full max-w-5xl xl:max-w-6xl flex flex-col flex-1 min-h-0">
+                        <div className="text-center border-b-2 border-sky-100 pb-3 xl:pb-5 mb-4 xl:mb-6 flex-shrink-0">
+                            <h2 className="text-2xl md:text-4xl xl:text-5xl font-extrabold text-sky-800 uppercase tracking-wider">Persiapan Petualangan</h2>
+                            <p className="text-sm md:text-base xl:text-xl text-sky-600 font-bold mt-1 xl:mt-2">Pahami tujuan dan panduan sebelum memulai!</p>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-6 xl:gap-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 xl:gap-8">
+                                {/* Tujuan */}
+                                <div className="flex flex-col space-y-3 xl:space-y-4">
+                                    <h3 className="text-lg md:text-xl xl:text-3xl font-extrabold text-sky-700 flex items-center gap-2 xl:gap-3 bg-sky-100/50 p-2 xl:p-3 rounded-xl border border-sky-100">
+                                        <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8 text-sky-500"/> Tujuan Pembelajaran
+                                    </h3>
+                                    <div className="bg-sky-50 p-4 xl:p-6 rounded-2xl shadow-sm space-y-4 h-full border border-sky-200">
+                                        <div className="flex gap-3 xl:gap-4 items-start bg-white p-3 xl:p-4 rounded-xl border border-sky-100 shadow-sm">
+                                            <div className="bg-sky-500 text-white font-black rounded-full w-8 h-8 xl:w-10 xl:h-10 flex items-center justify-center flex-shrink-0 text-sm xl:text-xl shadow-md">1</div>
+                                            <p className="text-gray-700 font-bold text-sm md:text-base xl:text-lg leading-relaxed mt-0.5">Murid mampu menyusun kalimat sederhana menggunakan Simple Present Tense tentang kegiatan sehari-hari.</p>
+                                        </div>
+                                        <div className="flex gap-3 xl:gap-4 items-start bg-white p-3 xl:p-4 rounded-xl border border-sky-100 shadow-sm">
+                                            <div className="bg-sky-500 text-white font-black rounded-full w-8 h-8 xl:w-10 xl:h-10 flex items-center justify-center flex-shrink-0 text-sm xl:text-xl shadow-md">2</div>
+                                            <p className="text-gray-700 font-bold text-sm md:text-base xl:text-lg leading-relaxed mt-0.5">Murid mampu menulis paragraf pendek tentang rutinitas harian menggunakan pola Simple Present Tense dengan benar.</p>
+                                        </div>
+                                        <div className="flex gap-3 xl:gap-4 items-start bg-white p-3 xl:p-4 rounded-xl border border-sky-100 shadow-sm">
+                                            <div className="bg-sky-500 text-white font-black rounded-full w-8 h-8 xl:w-10 xl:h-10 flex items-center justify-center flex-shrink-0 text-sm xl:text-xl shadow-md">3</div>
+                                            <p className="text-gray-700 font-bold text-sm md:text-base xl:text-lg leading-relaxed mt-0.5">Murid mampu mempresentasikan hasil tulisan tentang kegiatan sehari-hari secara sederhana di depan kelas.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            
+                                {/* Panduan */}
+                                <div className="flex flex-col space-y-3 xl:space-y-4">
+                                    <h3 className="text-lg md:text-xl xl:text-3xl font-extrabold text-teal-700 flex items-center gap-2 xl:gap-3 bg-teal-100/50 p-2 xl:p-3 rounded-xl border border-teal-100">
+                                        <Icons.Map className="w-6 h-6 xl:w-8 xl:h-8 text-teal-500"/> Panduan Penggunaan MPI
+                                    </h3>
+                                    <div className="bg-teal-50 p-4 xl:p-6 rounded-2xl shadow-sm h-full border border-teal-200 flex flex-col justify-center">
+                                        <ul className="text-sm md:text-base xl:text-lg text-gray-700 space-y-3 xl:space-y-4 font-medium">
+                                            <li className="flex items-start gap-3 bg-white p-3 rounded-xl border border-teal-100 shadow-sm">
+                                                <Icons.ArrowRight className="w-5 h-5 xl:w-6 xl:h-6 text-teal-500 flex-shrink-0 mt-0.5" /> 
+                                                <span>Pelajari materi melalui menu <b className="text-teal-800">Video, Mari Berlatih, dan Rangkuman</b>.</span>
+                                            </li>
+                                            <li className="flex items-start gap-3 bg-white p-3 rounded-xl border border-teal-100 shadow-sm">
+                                                <Icons.ArrowRight className="w-5 h-5 xl:w-6 xl:h-6 text-teal-500 flex-shrink-0 mt-0.5" /> 
+                                                <span>Buka <strong>Peta Perjalanan</strong> dan kunjungi 5 area tantangan.</span>
+                                            </li>
+                                            <li className="flex items-start gap-3 bg-white p-3 rounded-xl border border-teal-100 shadow-sm">
+                                                <Icons.ArrowRight className="w-5 h-5 xl:w-6 xl:h-6 text-teal-500 flex-shrink-0 mt-0.5" /> 
+                                                <span>Selesaikan misi di setiap area untuk mengumpulkan <b className="text-yellow-600">Poin Bintang</b>.</span>
+                                            </li>
+                                            <li className="flex items-start gap-3 bg-white p-3 rounded-xl border border-teal-100 shadow-sm">
+                                                <Icons.ArrowRight className="w-5 h-5 xl:w-6 xl:h-6 text-teal-500 flex-shrink-0 mt-0.5" /> 
+                                                <span>Selesaikan semua area dan lengkapi misi menulismu!</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sumber Materi */}
+                            <div className="w-full space-y-3 xl:space-y-4">
+                                <h3 className="text-lg md:text-xl xl:text-3xl font-extrabold text-orange-700 flex items-center gap-2 xl:gap-3 bg-orange-100/50 p-2 xl:p-3 rounded-xl border border-orange-100">
+                                    <Icons.BookOpen className="w-6 h-6 xl:w-8 xl:h-8 text-orange-500"/> Sumber Materi
+                                </h3>
+                                <div className="bg-orange-50 p-4 xl:p-6 rounded-2xl shadow-sm border border-orange-200">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 xl:gap-4">
+                                        <a href="https://www.youtube.com/@kejarcita" target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-white p-3 xl:p-4 rounded-xl border border-orange-100 hover:border-orange-400 hover:shadow-md transition-all group">
+                                            <div className="bg-red-100 p-2 rounded-lg group-hover:bg-red-200 transition-colors">
+                                                <Icons.Award className="w-5 h-5 xl:w-6 xl:h-6 text-red-600"/>
+                                            </div>
+                                            <span className="font-bold text-gray-700 text-sm xl:text-lg truncate">Channel Kejarcita</span>
+                                        </a>
+                                        <a href="https://youtu.be/REABS28mTiA?si=itvs-qBhrt84FaX1" target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-white p-3 xl:p-4 rounded-xl border border-orange-100 hover:border-orange-400 hover:shadow-md transition-all group">
+                                            <div className="bg-red-100 p-2 rounded-lg group-hover:bg-red-200 transition-colors">
+                                                <Icons.Maximize className="w-5 h-5 xl:w-6 xl:h-6 text-red-600"/>
+                                            </div>
+                                            <span className="font-bold text-gray-700 text-sm xl:text-lg truncate">Video Pembelajaran</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-5 pt-4 xl:mt-6 xl:pt-6 border-t-2 border-gray-100 text-center flex-shrink-0">
+                            <button onClick={onNext} className="bg-gradient-to-b from-blue-500 to-blue-600 text-white font-black hover:from-blue-400 hover:to-blue-500 transition-all border-b-4 border-blue-700 active:border-b-0 py-3 px-10 xl:py-4 xl:px-14 text-lg md:text-xl xl:text-2xl rounded-full shadow-lg active:shadow-none active:translate-y-1 inline-flex items-center gap-2">
+                                Mulai Belajar <Icons.ArrowRight className="w-6 h-6 xl:w-7 xl:h-7" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MATERI PEMBELAJARAN SCREEN (TABS) ---
+        function MateriScreen({ onNext }) {
+            const [activeTab, setActiveTab] = useState('video'); // 'video' | 'latihan' | 'teks'
+            const [videoAnswers, setVideoAnswers] = useState({});
+            const [videoQuizSubmitted, setVideoQuizSubmitted] = useState(false);
+
+            // State untuk Mari Berlatih
+            const shuffledPracticeOptions = useMemo(() => shuffleArray(PRACTICE_OPTIONS), []);
+            const [practiceDropped, setPracticeDropped] = useState({});
+            const [practiceSelected, setPracticeSelected] = useState(null);
+            const [practiceDragOver, setPracticeDragOver] = useState(null);
+            const [practiceSubmitted, setPracticeSubmitted] = useState(false);
+            const [practiceFeedback, setPracticeFeedback] = useState("");
+
+            const handlePracticeDragStart = (e, opt) => { e.dataTransfer.setData("opt", JSON.stringify(opt)); };
+            const handlePracticeDrop = (e, qId) => {
+                e.preventDefault();
+                setPracticeDragOver(null);
+                const optData = e.dataTransfer.getData("opt");
+                if (optData) {
+                    const opt = JSON.parse(optData);
+                    setPracticeDropped(prev => ({ ...prev, [qId]: opt }));
+                    setPracticeFeedback("");
+                }
+            };
+            const handlePracticeRemove = (qId) => {
+                setPracticeDropped(prev => { const newD = {...prev}; delete newD[qId]; return newD; });
+                setPracticeFeedback("");
+            };
+            const handlePracticeOptClick = (opt) => setPracticeSelected(practiceSelected?.id === opt.id ? null : opt);
+            const handlePracticeTargetClick = (qId) => {
+                if (practiceSelected) {
+                    setPracticeDropped(prev => ({...prev, [qId]: practiceSelected}));
+                    setPracticeSelected(null);
+                    setPracticeFeedback("");
+                } else if (practiceDropped[qId]) {
+                    handlePracticeRemove(qId);
+                }
+            };
+            const checkPracticeAnswer = () => {
+                if (Object.keys(practiceDropped).length < PRACTICE_QUESTIONS.length) {
+                    setPracticeFeedback("Pasangkan semua pernyataan terlebih dahulu ya!");
+                    return;
+                }
+                let allCorrect = true;
+                PRACTICE_QUESTIONS.forEach(q => {
+                    if (practiceDropped[q.id]?.id !== q.matchId) allCorrect = false;
+                });
+                if (allCorrect) {
+                    playSfx('correct');
+                    setPracticeSubmitted(true);
+                    setPracticeFeedback("");
+                } else {
+                    playSfx('incorrect');
+                    setPracticeFeedback("Masih ada pasangan yang belum tepat. Silakan periksa kembali!");
+                }
+            };
+
+            return (
+                <div className="w-full h-full flex flex-col justify-center items-center animate-fade-in flex-1 min-h-0">
+                  <div className="bg-white/95 p-4 md:p-6 xl:p-8 rounded-3xl shadow-xl border-2 border-sky-200 backdrop-blur-md w-full max-w-5xl xl:max-w-6xl flex flex-col flex-1 min-h-0">
+                      
+                      <div className="flex gap-2 xl:gap-4 mb-4 border-b pb-2 xl:pb-4 flex-shrink-0 overflow-x-auto custom-scrollbar">
+                          <button onClick={() => setActiveTab('video')} className={`flex-1 py-2 md:py-3 xl:py-4 px-3 text-sm md:text-base xl:text-xl font-bold rounded-xl transition flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'video' ? 'bg-red-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            🎥 Video Pembelajaran
+                          </button>
+                          <button onClick={() => setActiveTab('latihan')} className={`flex-1 py-2 md:py-3 xl:py-4 px-3 text-sm md:text-base xl:text-xl font-bold rounded-xl transition flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'latihan' ? 'bg-green-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            📝 Mari Berlatih
+                          </button>
+                          <button onClick={() => setActiveTab('teks')} className={`flex-1 py-2 md:py-3 xl:py-4 px-3 text-sm md:text-base xl:text-xl font-bold rounded-xl transition flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'teks' ? 'bg-orange-500 text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                            📖 Rangkuman Materi
+                          </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 md:p-4 flex flex-col">
+                          
+                          {activeTab === 'video' && (
+                              <div className="w-full flex flex-col animate-fade-in space-y-6 pb-4">
+                                  <div className="w-full max-w-4xl mx-auto bg-red-50 border-l-4 border-red-500 p-4 xl:p-6 rounded-xl shadow-sm flex items-center gap-3">
+                                      <Icons.BookOpen className="w-6 h-6 xl:w-8 xl:h-8 text-red-600 flex-shrink-0" />
+                                      <p className="text-sm md:text-base xl:text-lg font-bold text-red-800">Silakan simak video pembelajaran berikut dengan saksama sebelum mengerjakan latihan soal di bawahnya.</p>
+                                  </div>
+                                  <div className="w-full max-w-4xl mx-auto aspect-video rounded-2xl overflow-hidden shadow-lg border-4 border-red-200 flex-shrink-0">
+                                      <iframe
+                                          className="w-full h-full"
+                                          src="https://www.youtube-nocookie.com/embed/REABS28mTiA?si=itvs-qBhrt84FaX1"
+                                          title="YouTube video player"
+                                          frameBorder="0"
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                          referrerPolicy="strict-origin-when-cross-origin"
+                                          allowFullScreen
+                                      ></iframe>
+                                  </div>
+
+                                  <div className="w-full max-w-4xl mx-auto bg-red-50 p-5 xl:p-8 rounded-xl border border-red-100 shadow-sm flex-shrink-0">
+                                      <h4 className="font-extrabold text-red-700 mb-4 text-base md:text-lg xl:text-2xl flex items-center gap-2">✏️ Latihan Soal Video</h4>
+                                      <div className="space-y-4 xl:space-y-6">
+                                          {VIDEO_QUESTIONS.map((q, qIndex) => (
+                                              <div key={q.id} className="bg-white p-4 xl:p-6 rounded-xl border border-red-100 shadow-sm">
+                                                  <p className="font-bold text-gray-800 mb-3 text-sm md:text-base xl:text-xl whitespace-pre-wrap">{q.text}</p>
+                                                  <div className="space-y-2 xl:space-y-3">
+                                                      {q.options.map((opt, oIdx) => {
+                                                          const isSelected = videoAnswers[q.id] === oIdx;
+                                                          const isCorrect = q.correct === oIdx;
+                                                          const showResult = videoQuizSubmitted;
+                                                          
+                                                          let btnClass = "w-full text-left p-3 xl:p-4 rounded-lg border-2 text-sm md:text-base xl:text-lg font-medium transition-all flex items-start gap-3 ";
+                                                          if (showResult) {
+                                                              if (isCorrect) btnClass += "bg-green-50 border-green-500 text-green-800 font-bold";
+                                                              else if (isSelected && !isCorrect) btnClass += "bg-red-50 border-red-500 text-red-800 line-through";
+                                                              else btnClass += "bg-gray-50 border-gray-200 text-gray-500";
+                                                          } else {
+                                                              btnClass += isSelected ? "bg-red-500 border-red-600 text-white shadow-inner" : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50";
+                                                          }
+
+                                                          return (
+                                                              <button 
+                                                                  key={oIdx} 
+                                                                  disabled={videoQuizSubmitted}
+                                                                  onClick={() => setVideoAnswers(prev => ({...prev, [q.id]: oIdx}))}
+                                                                  className={btnClass}
+                                                              >
+                                                                  <span className="flex-1 leading-snug">{opt}</span>
+                                                                  {showResult && isCorrect && <Icons.CheckCircle className="w-5 h-5 xl:w-6 xl:h-6 text-green-600 flex-shrink-0" />}
+                                                                  {showResult && isSelected && !isCorrect && <Icons.X className="w-5 h-5 xl:w-6 xl:h-6 text-red-600 flex-shrink-0" />}
+                                                              </button>
+                                                          );
+                                                      })}
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+                                      {!videoQuizSubmitted ? (
+                                          <button 
+                                              onClick={() => {
+                                                  setVideoQuizSubmitted(true);
+                                                  const isAllCorrect = VIDEO_QUESTIONS.every(q => videoAnswers[q.id] === q.correct);
+                                                  if (isAllCorrect) playSfx('correct'); else playSfx('incorrect');
+                                              }}
+                                              disabled={Object.keys(videoAnswers).length < VIDEO_QUESTIONS.length}
+                                              className="mt-6 bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none text-white font-black py-3 px-6 xl:py-4 xl:px-8 rounded-xl w-full transition-all text-sm md:text-base xl:text-xl shadow-[0_4px_0_#b91c1c] active:shadow-none active:translate-y-1"
+                                          >
+                                              Cek Jawaban Latihan
+                                          </button>
+                                      ) : (
+                                          <div className="mt-6 text-center bg-white p-4 rounded-xl border border-red-100">
+                                              <p className="font-bold text-gray-800 mb-3 text-sm md:text-base xl:text-xl">Latihan selesai! Jika ada yang salah, pelajari kembali videonya ya.</p>
+                                              <button onClick={() => {setVideoAnswers({}); setVideoQuizSubmitted(false);}} className="text-red-600 font-bold underline hover:text-red-800 text-sm md:text-base xl:text-lg">
+                                                  <Icons.RefreshCcw className="inline w-4 h-4 mr-1 mb-0.5" /> Ulangi Latihan
+                                              </button>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          )}
+
+                          {activeTab === 'latihan' && (
+                              <div className="w-full flex flex-col animate-fade-in space-y-6 pb-4">
+                                  <div className="w-full max-w-4xl mx-auto bg-green-50 p-5 xl:p-8 rounded-xl border border-green-100 shadow-sm flex-shrink-0">
+                                      <h4 className="font-extrabold text-green-700 mb-4 text-base md:text-lg xl:text-2xl flex items-center gap-2">✏️ Mari Berlatih (Menjodohkan)</h4>
+                                      <p className="text-sm md:text-base xl:text-lg text-green-900 font-medium mb-5">Pasangkanlah kata kerja (verb) yang tepat untuk kalimat rutinitas di bawah ini! (Tarik jawaban atau klik lalu pilih kotaknya).</p>
+
+                                      {/* Pool Pilihan Jawaban */}
+                                      <div className="bg-white p-4 rounded-xl border-2 border-dashed border-green-300 mb-6 flex flex-wrap gap-3 justify-center min-h-[80px]">
+                                          {shuffledPracticeOptions.map(opt => {
+                                              const isDropped = Object.values(practiceDropped).find(d => d.id === opt.id);
+                                              if (isDropped) return null;
+                                              return (
+                                                  <div 
+                                                      key={opt.id}
+                                                      draggable
+                                                      onDragStart={(e) => handlePracticeDragStart(e, opt)}
+                                                      onClick={() => handlePracticeOptClick(opt)}
+                                                      className={`px-4 py-2 rounded-lg border-2 font-bold text-sm md:text-base xl:text-xl cursor-grab active:cursor-grabbing shadow-sm transition-all select-none max-w-xs text-center ${practiceSelected?.id === opt.id ? 'bg-green-500 border-green-600 text-white scale-105' : 'bg-white text-gray-700 border-green-300 hover:bg-green-50'}`}
+                                                  >
+                                                      {opt.text}
+                                                  </div>
+                                              )
+                                          })}
+                                          {Object.keys(practiceDropped).length === PRACTICE_QUESTIONS.length && <span className="text-gray-500 font-medium my-auto text-sm md:text-base">Semua kalimat telah terisi.</span>}
+                                      </div>
+
+                                      {/* Soal / Pernyataan */}
+                                      <div className="space-y-4 xl:space-y-6">
+                                          {PRACTICE_QUESTIONS.map((q, idx) => (
+                                              <div key={q.id} className="bg-white p-4 xl:p-6 rounded-xl border border-green-200 shadow-sm flex flex-col md:flex-row gap-4 xl:gap-6 items-center">
+                                                  <div className="flex-1 w-full text-center md:text-left">
+                                                      <span className="font-black text-green-800 text-xs md:text-sm uppercase tracking-wider block mb-2">Soal {idx + 1}</span>
+                                                      <p className="font-bold text-gray-800 text-sm md:text-base xl:text-xl leading-relaxed">{q.text}</p>
+                                                  </div>
+                                                  <div 
+                                                      className={`flex-1 w-full md:max-w-[200px] min-h-[60px] border-2 border-dashed rounded-xl p-2 flex items-center justify-center transition-all cursor-pointer relative ${practiceDragOver === q.id ? 'bg-green-100 border-green-500 scale-[1.02]' : 'bg-gray-50 border-gray-300 hover:border-green-300'} ${practiceDropped[q.id] ? 'bg-green-50 border-green-400 border-solid' : ''}`}
+                                                      onDragOver={(e) => { e.preventDefault(); setPracticeDragOver(q.id); }}
+                                                      onDragLeave={() => setPracticeDragOver(null)}
+                                                      onDrop={(e) => handlePracticeDrop(e, q.id)}
+                                                      onClick={() => handlePracticeTargetClick(q.id)}
+                                                  >
+                                                      {practiceDropped[q.id] ? (
+                                                          <div className="text-center relative w-full group p-1">
+                                                              <span className="font-bold text-green-800 text-sm md:text-base xl:text-xl">{practiceDropped[q.id].text}</span>
+                                                              {!practiceSubmitted && (
+                                                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/90 transition-opacity rounded-lg">
+                                                                      <Icons.X className="w-5 h-5 text-red-500 drop-shadow-md" />
+                                                                  </div>
+                                                              )}
+                                                          </div>
+                                                      ) : (
+                                                          <span className="text-gray-400 font-medium text-xs md:text-sm text-center">Letakkan verb</span>
+                                                      )}
+                                                  </div>
+                                              </div>
+                                          ))}
+                                      </div>
+
+                                      {/* Feedback & Button */}
+                                      {!practiceSubmitted ? (
+                                          <div className="mt-8 flex flex-col items-center">
+                                              {practiceFeedback && <p className="text-red-600 font-bold text-sm md:text-base xl:text-xl mb-4 bg-red-100 px-5 py-3 rounded-xl border border-red-200 text-center w-full">{practiceFeedback}</p>}
+                                              <button 
+                                                  onClick={checkPracticeAnswer}
+                                                  className="bg-green-500 hover:bg-green-600 text-white font-black py-3 px-6 xl:py-4 xl:px-10 rounded-xl w-full transition-all text-base md:text-lg xl:text-xl shadow-[0_4px_0_#166534] active:shadow-none active:translate-y-1 flex items-center justify-center gap-2"
+                                              >
+                                                  <Icons.CheckCircle className="w-5 h-5 xl:w-6 xl:h-6" /> Cek Jawaban Latihan
+                                              </button>
+                                          </div>
+                                      ) : (
+                                          <div className="mt-8 text-center bg-white p-5 rounded-xl border border-green-200 shadow-sm">
+                                              <p className="font-bold text-green-800 mb-3 text-base md:text-lg xl:text-xl flex items-center justify-center gap-2">
+                                                  <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8" /> Latihan selesai! Semua pasangan sudah tepat.
+                                              </p>
+                                              <button onClick={() => {setPracticeDropped({}); setPracticeSubmitted(false); setPracticeFeedback("");}} className="text-green-600 font-bold underline hover:text-green-800 text-sm md:text-base xl:text-lg mt-2 inline-flex items-center gap-1">
+                                                  <Icons.RefreshCcw className="w-4 h-4" /> Ulangi Latihan
+                                              </button>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          )}
+
+                          {activeTab === 'teks' && (
+                              <div className="space-y-4 md:space-y-5 xl:space-y-6 animate-fade-in pb-2">
+                                  <div className="bg-teal-50 p-4 xl:p-6 rounded-xl border border-teal-100 shadow-sm">
+                                      <h4 className="font-extrabold text-teal-700 mb-2 text-sm md:text-base xl:text-2xl">📚 Rangkuman Lengkap Simple Present Tense</h4>
+                                      <p className="text-xs md:text-sm xl:text-lg text-gray-700 leading-relaxed font-medium">Simple Present Tense digunakan untuk menyatakan kebiasaan (habitual actions), fakta umum (general truths), atau kejadian yang terjadi secara rutin di masa sekarang.</p>
+                                  </div>
+
+                                  <div className="bg-blue-50 p-4 xl:p-6 rounded-xl border border-blue-100 shadow-sm">
+                                      <h4 className="font-extrabold text-blue-700 mb-2 text-sm md:text-base xl:text-2xl">1. Kalimat Verbal (Menggunakan Kata Kerja)</h4>
+                                      <p className="text-xs md:text-sm xl:text-lg text-gray-700 leading-relaxed font-medium mb-3">Kalimat yang menggunakan kata kerja aksi (action verb).</p>
+                                      
+                                      <div className="overflow-x-auto mb-4 rounded-lg border border-blue-200">
+                                          <table className="min-w-full bg-white text-xs md:text-sm xl:text-lg">
+                                              <thead className="bg-blue-100">
+                                                  <tr>
+                                                      <th className="py-3 px-4 border-b border-blue-200 text-left text-blue-800 font-bold whitespace-nowrap">Bentuk Kalimat</th>
+                                                      <th className="py-3 px-4 border-b border-blue-200 text-left text-blue-800 font-bold whitespace-nowrap">Subjek (I, You, They, We)</th>
+                                                      <th className="py-3 px-4 border-b border-blue-200 text-left text-blue-800 font-bold whitespace-nowrap">Subjek (He, She, It)</th>
+                                                  </tr>
+                                              </thead>
+                                              <tbody>
+                                                  <tr className="hover:bg-blue-50/50">
+                                                      <td className="py-3 px-4 border-b border-blue-50 font-bold text-blue-900">Positif (+)</td>
+                                                      <td className="py-3 px-4 border-b border-blue-50">S + Verb 1</td>
+                                                      <td className="py-3 px-4 border-b border-blue-50">S + Verb 1 (+s/es)</td>
+                                                  </tr>
+                                                  <tr className="hover:bg-blue-50/50">
+                                                      <td className="py-3 px-4 border-b border-blue-50 font-bold text-blue-900">Negatif (-)</td>
+                                                      <td className="py-3 px-4 border-b border-blue-50">S + do not (don't) + Verb 1</td>
+                                                      <td className="py-3 px-4 border-b border-blue-50">S + does not (doesn't) + Verb 1</td>
+                                                  </tr>
+                                                  <tr className="hover:bg-blue-50/50">
+                                                      <td className="py-3 px-4 font-bold text-blue-900">Tanya (?)</td>
+                                                      <td className="py-3 px-4">Do + S + Verb 1?</td>
+                                                      <td className="py-3 px-4">Does + S + Verb 1?</td>
+                                                  </tr>
+                                              </tbody>
+                                          </table>
+                                      </div>
+                                      
+                                      <div className="bg-white p-4 rounded-lg border border-blue-100 mb-3 shadow-sm">
+                                          <p className="font-bold text-blue-800 mb-2 text-sm xl:text-lg flex items-center gap-2">📝 Aturan Akhiran -s/-es (Hanya untuk He/She/It di Kalimat Positif):</p>
+                                          <ul className="list-disc pl-5 text-gray-700 text-xs md:text-sm xl:text-lg space-y-1.5">
+                                              <li><strong>+es:</strong> Untuk kata kerja berakhiran -o, -ch, -sh, -ss, -x (Contoh: go → goes, watch → watches).</li>
+                                              <li><strong>-y menjadi -ies:</strong> Jika akhiran -y didahului huruf konsonan (Contoh: study → studies).</li>
+                                              <li><strong>+s:</strong> Untuk kata kerja umum lainnya (Contoh: drink → drinks, speak → speaks).</li>
+                                          </ul>
+                                      </div>
+                                      
+                                      <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                                          <p className="font-bold text-blue-800 mb-2 text-sm xl:text-lg flex items-center gap-2">💬 Contoh Kalimat Verbal:</p>
+                                          <ul className="text-gray-700 text-xs md:text-sm xl:text-lg space-y-2">
+                                              <li><strong>Positif (+):</strong><br/>I drink coffee every morning. (Saya minum kopi setiap pagi.)<br/>She speaks English fluently. (Dia berbicara bahasa Inggris dengan lancar.)</li>
+                                              <li><strong>Negatif (-):</strong><br/>I do not drink coffee every morning.<br/>She does not speak English fluently.</li>
+                                              <li><strong>Tanya (?):</strong><br/>Do you drink coffee every morning?<br/>Does she speak English fluently?</li>
+                                          </ul>
+                                      </div>
+                                  </div>
+
+                                  <div className="bg-orange-50 p-4 xl:p-6 rounded-xl border border-orange-100 shadow-sm">
+                                      <h4 className="font-extrabold text-orange-700 mb-2 text-sm md:text-base xl:text-2xl">2. Kalimat Nominal (Tanpa Kata Kerja Aksi)</h4>
+                                      <p className="text-xs md:text-sm xl:text-lg text-gray-700 leading-relaxed font-medium mb-3">Kalimat yang menggunakan kata kerja bantu <i>to be (am, is, are)</i> dan diikuti oleh kata benda, kata sifat, atau keterangan.</p>
+                                      
+                                      <div className="overflow-x-auto mb-4 rounded-lg border border-orange-200">
+                                          <table className="min-w-full bg-white text-xs md:text-sm xl:text-lg">
+                                              <thead className="bg-orange-100">
+                                                  <tr>
+                                                      <th className="py-3 px-4 border-b border-orange-200 text-left text-orange-800 font-bold">Subjek</th>
+                                                      <th className="py-3 px-4 border-b border-orange-200 text-left text-orange-800 font-bold">To Be</th>
+                                                      <th className="py-3 px-4 border-b border-orange-200 text-left text-orange-800 font-bold whitespace-nowrap">Rumus (+)</th>
+                                                      <th className="py-3 px-4 border-b border-orange-200 text-left text-orange-800 font-bold whitespace-nowrap">Rumus (-)</th>
+                                                      <th className="py-3 px-4 border-b border-orange-200 text-left text-orange-800 font-bold whitespace-nowrap">Rumus (?)</th>
+                                                  </tr>
+                                              </thead>
+                                              <tbody>
+                                                  <tr className="hover:bg-orange-50/50">
+                                                      <td className="py-3 px-4 border-b border-orange-50 font-bold text-orange-900">I</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50 font-bold text-orange-600">am</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">S + am</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">S + am + not</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">Am + S + ...?</td>
+                                                  </tr>
+                                                  <tr className="hover:bg-orange-50/50">
+                                                      <td className="py-3 px-4 border-b border-orange-50 font-bold text-orange-900">He, She, It</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50 font-bold text-orange-600">is</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">S + is</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">S + is + not</td>
+                                                      <td className="py-3 px-4 border-b border-orange-50">Is + S + ...?</td>
+                                                  </tr>
+                                                  <tr className="hover:bg-orange-50/50">
+                                                      <td className="py-3 px-4 font-bold text-orange-900">You, They, We</td>
+                                                      <td className="py-3 px-4 font-bold text-orange-600">are</td>
+                                                      <td className="py-3 px-4">S + are</td>
+                                                      <td className="py-3 px-4">S + are + not</td>
+                                                      <td className="py-3 px-4">Are + S + ...?</td>
+                                                  </tr>
+                                              </tbody>
+                                          </table>
+                                      </div>
+                                      
+                                      <div className="bg-white p-4 rounded-lg border border-orange-100 shadow-sm">
+                                          <p className="font-bold text-orange-800 mb-2 text-sm xl:text-lg flex items-center gap-2">💬 Contoh Kalimat Nominal:</p>
+                                          <ul className="text-gray-700 text-xs md:text-sm xl:text-lg space-y-1.5">
+                                              <li><strong>Positif (+):</strong> They are in Jakarta. (Mereka ada di Jakarta.)</li>
+                                              <li><strong>Negatif (-):</strong> They are not in Jakarta. (Mereka tidak ada di Jakarta.)</li>
+                                              <li><strong>Tanya (?):</strong> Are they in Jakarta? (Apakah mereka ada di Jakarta?)</li>
+                                          </ul>
+                                      </div>
+                                  </div>
+
+                                  <div className="bg-purple-50 p-4 xl:p-6 rounded-xl border border-purple-100 shadow-sm">
+                                      <h4 className="font-extrabold text-purple-700 mb-2 text-sm md:text-base xl:text-2xl">⏱️ 3. Keterangan Waktu (Time Signal)</h4>
+                                      <p className="text-xs md:text-sm xl:text-lg text-gray-700 leading-relaxed font-medium mb-4">Tense ini sangat erat kaitannya dengan penggunaan kata keterangan untuk memperjelas rutinitas:</p>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 xl:gap-6">
+                                          <div className="bg-white p-4 rounded-lg border border-purple-100 shadow-sm">
+                                              <p className="font-bold text-purple-800 mb-1 text-sm xl:text-lg">A. Adverbs of Frequency (Seberapa Sering)</p>
+                                              <p className="text-[10px] md:text-xs xl:text-sm text-purple-600 mb-3 italic bg-purple-50 px-2 py-1 rounded inline-block">Diletakkan sebelum kata kerja utama atau setelah to be.</p>
+                                              <ul className="list-disc pl-5 text-gray-700 text-xs md:text-sm xl:text-base space-y-1.5">
+                                                  <li><strong>Always (Selalu):</strong> I always wake up at 5 AM.</li>
+                                                  <li><strong>Usually (Biasanya):</strong> She usually drinks tea.</li>
+                                                  <li><strong>Often (Sering):</strong> They often play basketball.</li>
+                                                  <li><strong>Sometimes (Kadang):</strong> We sometimes eat pizza.</li>
+                                                  <li><strong>Never (Tidak pernah):</strong> He never comes late.</li>
+                                              </ul>
+                                          </div>
+
+                                          <div className="bg-white p-4 rounded-lg border border-purple-100 shadow-sm">
+                                              <p className="font-bold text-purple-800 mb-1 text-sm xl:text-lg">B. Adverbs of Time (Waktu Spesifik)</p>
+                                              <p className="text-[10px] md:text-xs xl:text-sm text-purple-600 mb-3 italic bg-purple-50 px-2 py-1 rounded inline-block">Biasanya diletakkan di akhir kalimat.</p>
+                                              <ul className="list-disc pl-5 text-gray-700 text-xs md:text-sm xl:text-base space-y-1.5">
+                                                  <li><strong>Every day:</strong> My mother goes to the market every day.</li>
+                                                  <li><strong>Every week:</strong> They clean the house every week.</li>
+                                                  <li><strong>Once a month:</strong> He visits his grandmother once a month.</li>
+                                                  <li><strong>On Sundays:</strong> We do not go to school on Sundays.</li>
+                                              </ul>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-gray-200 text-center flex-shrink-0">
+                          <button onClick={onNext} className="bg-gradient-to-b from-blue-500 to-blue-600 text-white font-black hover:from-blue-400 hover:to-blue-500 transition-all border-b-4 border-blue-700 active:border-b-0 py-3 px-8 xl:py-4 xl:px-10 text-base md:text-lg xl:text-2xl rounded-full shadow-lg active:shadow-none active:translate-y-1 inline-flex items-center gap-2">
+                              Lanjut ke Peta <Icons.Map className="w-5 h-5 xl:w-7 xl:h-7" />
+                          </button>
+                      </div>
+                  </div>
+                </div>
+            );
+        }
+
+        // --- MAP SCREEN COMPONENT ---
+        function MapScreen({ unlockedLevel, onLevelSelect, onFinish, isCompleted }) {
+            return (
+                <div className="flex flex-col flex-1 min-h-[400px] w-full max-w-6xl xl:max-w-7xl bg-white rounded-2xl md:rounded-3xl overflow-hidden shadow-xl animate-fade-in relative border-4 border-white mx-auto">
+                  <div className="absolute top-3 left-3 md:top-5 md:left-5 z-10 bg-white/95 backdrop-blur px-4 py-3 md:px-5 md:py-4 rounded-xl shadow-lg border-l-4 md:border-l-8 border-sky-500">
+                    <h2 className="font-bold text-sky-800 text-sm md:text-xl tracking-wide">Peta Perjalanan</h2>
+                    <p className="text-xs md:text-sm text-gray-600 font-medium mt-1">Pilih area misi yang terbuka!</p>
+                  </div>
+
+                  <div className="relative w-full h-full bg-sky-100 overflow-hidden group">
+                    <img src={MAP_IMAGE_URL} alt="Peta" className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-[2s]" />
+                    
+                    {MAP_POSITIONS.map((pos) => {
+                      const isUnlocked = pos.level <= unlockedLevel;
+                      const isCurrent = pos.level === unlockedLevel;
+                      
+                      return (
+                        <button key={pos.level} onClick={() => isUnlocked ? onLevelSelect(pos.level) : null} disabled={!isUnlocked} style={{ top: pos.top, left: pos.left }}
+                          className={`absolute transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 md:w-20 md:h-20 xl:w-24 xl:h-24 rounded-full flex items-center justify-center border-2 md:border-[5px] shadow-xl transition-all duration-300 z-20 group/btn
+                            ${isCurrent ? 'scale-110 animate-bounce-slow ring-4 ring-yellow-400 border-white' : 'hover:scale-110 border-white'}
+                            ${isUnlocked ? 'bg-gradient-to-br from-teal-400 to-blue-500 text-white cursor-pointer' : 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed grayscale'}
+                          `}
+                        >
+                          {isUnlocked ? (
+                            <span className="font-extrabold text-xl md:text-3xl xl:text-4xl drop-shadow-md">{pos.level}</span>
+                          ) : (
+                            <Icons.Lock className="w-5 h-5 md:w-8 md:h-8 opacity-50" />
+                          )}
+                          <div className="absolute -bottom-8 xl:-bottom-12 left-1/2 transform -translate-x-1/2 bg-white px-3 py-1.5 xl:px-4 xl:py-2 rounded-full text-[10px] md:text-sm xl:text-base font-bold whitespace-nowrap shadow-md border-2 text-gray-700 opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none">
+                            {LEVEL_DATA[pos.level].title}
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {isCompleted && (
+                      <button onClick={onFinish} className="absolute bottom-8 right-8 md:bottom-12 md:right-12 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold py-3 px-6 md:py-4 md:px-8 xl:py-5 xl:px-10 rounded-full shadow-lg flex items-center gap-3 animate-pulse z-30 transform hover:scale-105 transition text-sm md:text-base xl:text-xl">
+                        <Icons.Award className="w-5 h-5 md:w-7 md:h-7 xl:w-8 xl:h-8" /> <span>Sertifikat</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+            );
+        }
+
+        // --- LEVEL 1: SUMATERA (Drag & Drop Vocabulary) ---
+        function Level1Sumatera({ onComplete, onCorrect }) {
+            const data = LEVEL_DATA[1];
+            const shuffledItems = useMemo(() => shuffleArray(data.items), [data.items]);
+            const shuffledTargets = useMemo(() => shuffleArray(data.targets), [data.targets]);
+            
+            const [droppedItems, setDroppedItems] = useState({}); 
+            const [completed, setCompleted] = useState(false);
+            const [dragOverTarget, setDragOverTarget] = useState(null);
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [feedbackMsg, setFeedbackMsg] = useState("");
+
+            const handleDragStart = (e, item) => { e.dataTransfer.setData("item", JSON.stringify(item)); };
+            const handleDragOver = (e, targetId) => { e.preventDefault(); setDragOverTarget(targetId); };
+            const handleDragLeave = (e) => { e.preventDefault(); setDragOverTarget(null); }
+            const handleDrop = (e, target) => {
+                e.preventDefault(); 
+                setDragOverTarget(null);
+                const itemData = e.dataTransfer.getData("item");
+                if (itemData) {
+                    const item = JSON.parse(itemData);
+                    setDroppedItems(prev => ({ ...prev, [item.id]: target.id }));
+                    setFeedbackMsg("");
+                }
+            };
+
+            const handleRemoveItem = (itemId) => {
+                setDroppedItems(prev => { const newItems = { ...prev }; delete newItems[itemId]; return newItems; });
+                setFeedbackMsg("");
+            };
+
+            const handleItemClick = (item) => { setSelectedItem(selectedItem?.id === item.id ? null : item); };
+            const handleTargetClick = (target) => { 
+                if (selectedItem) {
+                    setDroppedItems(prev => ({ ...prev, [selectedItem.id]: target.id }));
+                    setSelectedItem(null);
+                    setFeedbackMsg("");
+                } 
+            };
+
+            const handleCheckAnswer = () => {
+                let isAllCorrect = true;
+                data.items.forEach(item => { if (droppedItems[item.id] !== item.matchId) isAllCorrect = false; });
+
+                if (isAllCorrect) {
+                    playSfx('correct');
+                    for(let i=0; i<6; i++) { if (onCorrect) onCorrect(); }
+                    setCompleted(true);
+                } else {
+                    playSfx('incorrect');
+                    setFeedbackMsg("Hmm, sepertinya masih ada yang belum pas lokasinya. Silakan periksa dan pindahkan lagi!");
+                }
+            };
+
+            const allItemsDropped = Object.keys(droppedItems).length === data.items.length;
+
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto flex-1 min-h-0">
+                  {!completed ? (
+                    <div className="flex flex-col flex-1 min-h-0 animate-fade-in">
+                        <div className="bg-yellow-100 p-3 xl:p-4 rounded-xl border-l-4 border-yellow-500 text-center text-sm md:text-base xl:text-xl font-bold text-yellow-800 mb-4 shadow-sm flex-shrink-0">
+                            💡 {data.instruction}
+                        </div>
+                        
+                        <div className="flex flex-col md:flex-row gap-4 xl:gap-8 flex-1 min-h-0">
+                          <div className="flex-1 md:w-1/2 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                            <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 p-3 xl:p-4 bg-white/50 rounded-2xl border-2 border-dashed border-gray-300 min-h-[200px]">
+                              {shuffledItems.map(item => (
+                                !droppedItems[item.id] && (
+                                  <div key={item.id} draggable onDragStart={(e) => handleDragStart(e, item)} onClick={() => handleItemClick(item)}
+                                    className={`p-3 xl:p-6 rounded-xl border-2 text-center flex items-center justify-center cursor-grab active:cursor-grabbing select-none shadow-sm hover:shadow-md transition-all ${selectedItem?.id === item.id ? 'border-sky-500 bg-sky-500 text-white scale-105' : 'border-gray-300 bg-white text-sky-800'}`}
+                                  >
+                                    <span className="font-black text-xl xl:text-3xl">{item.text}</span>
+                                  </div>
+                                )
+                              ))}
+                              {allItemsDropped && <p className="col-span-2 text-center text-gray-400 font-bold text-base xl:text-xl mt-6">Semua verb telah dipasangkan.</p>}
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 md:w-1/2 flex flex-col min-h-0 overflow-y-auto custom-scrollbar pr-2">
+                            <div className="grid grid-cols-1 gap-3">
+                              {shuffledTargets.map(target => (
+                                <div key={target.id} onDragOver={(e) => handleDragOver(e, target.id)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, target)} onClick={() => handleTargetClick(target)}
+                                  className={`w-full p-3 xl:p-5 rounded-xl border-2 border-dashed flex justify-between items-center transition-all min-h-[70px] xl:min-h-[100px] cursor-pointer ${dragOverTarget === target.id ? 'bg-green-100 border-green-400 scale-[1.02]' : 'bg-white/90 border-gray-300'}`}
+                                >
+                                  <span className="font-bold text-gray-700 text-base md:text-lg xl:text-2xl">{target.label}</span>
+                                  <div className="flex gap-2 flex-wrap justify-end">
+                                    {data.items.filter(i => droppedItems[i.id] === target.id).map(i => (
+                                      <div key={i.id} title={`Klik untuk mengembalikan`} onClick={(e) => { e.stopPropagation(); handleRemoveItem(i.id); }} className="px-4 py-2 xl:px-6 xl:py-3 bg-sky-500 text-white rounded-lg border shadow-sm animate-pop-in cursor-pointer hover:bg-red-500 transition-colors relative group">
+                                         <span className="font-black text-lg xl:text-2xl group-hover:opacity-0">{i.text}</span>
+                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none"><Icons.X className="w-5 h-5 xl:w-8 xl:h-8 text-white" /></div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {allItemsDropped && (
+                            <div className="mt-4 flex flex-col items-center flex-shrink-0 animate-fade-in">
+                                {feedbackMsg && <p className="text-red-600 font-bold text-sm md:text-base xl:text-xl mb-3 bg-red-100 px-5 py-3 rounded-xl border border-red-200 text-center">{feedbackMsg}</p>}
+                                <button onClick={handleCheckAnswer} className="bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-3 px-10 xl:py-4 xl:px-14 rounded-2xl shadow-[0_6px_0_#1d4ed8] active:shadow-none active:translate-y-2 transition-all text-lg xl:text-2xl flex items-center justify-center gap-3">
+                                    <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8" /> Cek Jawaban
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                  ) : (
+                    <div className="bg-white/95 p-6 md:p-10 xl:p-14 rounded-3xl shadow-xl text-center space-y-5 border border-green-100 max-w-3xl mx-auto animate-fade-in mt-4 flex-shrink-0">
+                      <div className="w-16 h-16 md:w-20 md:h-20 xl:w-28 xl:h-28 bg-green-100 rounded-full flex items-center justify-center mx-auto text-3xl md:text-4xl xl:text-6xl shadow-inner">🎉</div>
+                      <div>
+                          <h3 className="text-xl md:text-3xl xl:text-4xl font-black text-green-800 uppercase tracking-wider mb-2">Excellent!</h3>
+                          <p className="text-base md:text-lg xl:text-2xl font-bold text-gray-700 leading-relaxed">Kamu telah menyelesaikan misi Area 1 dengan sempurna.</p>
+                      </div>
+                      <button onClick={onComplete} className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-black w-full py-4 xl:py-5 text-lg md:text-xl xl:text-3xl rounded-2xl shadow-[0_6px_0_#166534] active:shadow-none active:translate-y-2 transition-all">Lanjut Perjalanan 🚀</button>
+                    </div>
+                  )}
+                </div>
+            );
+        }
+
+        // --- LEVEL 2: JAWA (Grammar MCQ) ---
+        function Level2Jawa({ onComplete, onCorrect }) {
+            const data = LEVEL_DATA[2];
+            const [answers, setAnswers] = useState({});
+            const [step, setStep] = useState('quiz'); 
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [scoreDetails, setScoreDetails] = useState(0);
+
+            const flatQuestions = React.useMemo(() => {
+                const arr = [];
+                data.parts.forEach(part => {
+                    part.questions.forEach(q => {
+                        const originalOptions = [...q.options];
+                        const shuffledOptions = shuffleArray(originalOptions);
+                        
+                        let newCorrect;
+                        if (q.type === 'single') {
+                            newCorrect = shuffledOptions.indexOf(originalOptions[q.correct]);
+                        } else {
+                            newCorrect = q.correct.map(idx => shuffledOptions.indexOf(originalOptions[idx]));
+                        }
+
+                        arr.push({
+                            ...q,
+                            options: shuffledOptions,
+                            correct: newCorrect,
+                            stimulusTitle: part.stimulusTitle,
+                            stimulusText: part.stimulusText
+                        });
+                    });
+                });
+                return arr;
+            }, [data]);
+
+            const currentQ = flatQuestions[currentQIndex];
+
+            const handleSingle = (qId, optIdx) => { setAnswers(prev => ({ ...prev, [qId]: optIdx })); };
+            const handleMultiple = (qId, optIdx) => {
+                setAnswers(prev => {
+                    const current = prev[qId] || [];
+                    if (current.includes(optIdx)) return { ...prev, [qId]: current.filter(x => x !== optIdx) };
+                    if (current.length < 2) return { ...prev, [qId]: [...current, optIdx] };
+                    return prev; 
+                });
+            };
+
+            const isCurrentAnswered = currentQ.type === 'single' ? answers[currentQ.id] !== undefined : (answers[currentQ.id] && answers[currentQ.id].length > 0);
+
+            const handleNext = () => { if (currentQIndex < flatQuestions.length - 1) setCurrentQIndex(prev => prev + 1); };
+            const handlePrev = () => { if (currentQIndex > 0) setCurrentQIndex(prev => prev - 1); };
+
+            const handleSubmit = () => {
+                let correctAns = 0;
+                flatQuestions.forEach(q => {
+                    const userAns = answers[q.id];
+                    if (q.type === 'single') {
+                        if (userAns === q.correct) correctAns++;
+                    } else if (q.type === 'multiple') {
+                        if (Array.isArray(userAns) && userAns.length === q.correct.length && userAns.every(val => q.correct.includes(val))) correctAns++;
+                    }
+                });
+
+                if (correctAns === flatQuestions.length) playSfx('correct');
+                else playSfx('incorrect');
+
+                setScoreDetails(correctAns);
+                setStep('feedback');
+            };
+
+            const handleRetry = () => { setAnswers({}); setCurrentQIndex(0); setScoreDetails(0); setStep('quiz'); };
+            const handleProceed = () => { for(let i = 0; i < scoreDetails; i++) { if (onCorrect) onCorrect(); } onComplete(); };
+
+            if (step === 'feedback') {
+                return (
+                    <div className="flex flex-col h-full w-full max-w-5xl mx-auto pb-4 animate-fade-in justify-center">
+                        <div className="bg-white/95 p-6 md:p-10 xl:p-14 rounded-3xl shadow-xl border-4 border-green-200 text-center mt-4 flex-shrink-0">
+                            <Icons.Award className="w-16 h-16 xl:w-24 xl:h-24 text-yellow-500 mx-auto animate-bounce-slow mb-3" />
+                            <h3 className="text-2xl md:text-3xl xl:text-5xl font-black text-gray-800 mb-3 xl:mb-5">Hasil Asesmen</h3>
+                            <p className="text-lg md:text-xl xl:text-3xl font-bold text-gray-600 mb-6 xl:mb-10">Kamu menjawab <span className="text-green-600 text-3xl md:text-4xl xl:text-6xl mx-2">{scoreDetails}</span> dari {flatQuestions.length} soal dengan benar!</p>
+                            
+                            <div className="space-y-4 xl:space-y-6 text-left max-h-[40vh] overflow-y-auto custom-scrollbar pr-3 mb-8">
+                                {flatQuestions.map((q) => {
+                                    const userAns = answers[q.id];
+                                    let isCorrect = false;
+                                    if (q.type === 'single') isCorrect = userAns === q.correct;
+                                    else isCorrect = Array.isArray(userAns) && userAns.length === q.correct.length && userAns.every(val => q.correct.includes(val));
+
+                                    return (
+                                        <div key={q.id} className={`p-4 xl:p-6 rounded-xl border-2 ${isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+                                            <div className="flex gap-3 xl:gap-5 items-start mb-2 xl:mb-4">
+                                                {isCorrect ? <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8 text-green-600 flex-shrink-0 mt-0.5" /> : <Icons.X className="w-6 h-6 xl:w-8 xl:h-8 text-red-600 flex-shrink-0 mt-0.5" />}
+                                                <p className="font-bold text-gray-800 text-sm md:text-base xl:text-xl">{q.text}</p>
+                                            </div>
+                                            <div className="ml-9 xl:ml-13 space-y-1 xl:space-y-2 text-sm md:text-base xl:text-xl">
+                                                {q.options.map((opt, oIdx) => {
+                                                    const isSelected = q.type === 'single' ? userAns === oIdx : (userAns || []).includes(oIdx);
+                                                    const isCorrectOpt = q.type === 'single' ? q.correct === oIdx : q.correct.includes(oIdx);
+                                                    if (!isSelected && !isCorrectOpt) return null; 
+                                                    
+                                                    let optClass = "text-gray-600"; let icon = "•";
+                                                    if (isCorrectOpt) { optClass = "text-green-700 font-bold"; icon = "✓"; } 
+                                                    else if (isSelected && !isCorrectOpt) { optClass = "text-red-600 line-through"; icon = "✗"; }
+                                                    
+                                                    return (
+                                                        <div key={oIdx} className={`flex gap-3 ${optClass}`}>
+                                                            <span className="w-5">{icon}</span>
+                                                            <span>{opt} {isSelected && !isCorrectOpt ? '(Jawabanmu)' : ''} {isCorrectOpt ? '(Jawaban Benar)' : ''}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-4 xl:gap-6 justify-center">
+                                {scoreDetails < flatQuestions.length && (
+                                    <button onClick={handleRetry} className="bg-yellow-500 hover:bg-yellow-600 text-white font-black py-3 px-8 xl:py-5 xl:px-12 rounded-2xl shadow-[0_6px_0_#ca8a04] active:shadow-none active:translate-y-2 transition-all text-base md:text-lg xl:text-2xl flex items-center justify-center gap-3">
+                                        <Icons.RefreshCcw className="w-6 h-6 xl:w-8 xl:h-8" /> Coba Lagi
+                                    </button>
+                                )}
+                                <button onClick={handleProceed} className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-black py-3 px-8 xl:py-5 xl:px-12 rounded-2xl shadow-[0_6px_0_#15803d] active:shadow-none active:translate-y-2 transition-all text-base md:text-lg xl:text-2xl flex items-center justify-center gap-3">
+                                    Lanjut Perjalanan 🚀
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto flex-1 min-h-0">
+                   <div className="bg-blue-100 text-blue-800 p-3 xl:p-4 rounded-xl text-center font-bold text-sm md:text-base xl:text-xl border-l-4 border-blue-500 shadow-sm flex items-center justify-center gap-3 mb-4 flex-shrink-0">
+                     <Icons.BookOpen className="w-5 h-5 xl:w-7 xl:h-7" /> Baca teks stimulus di kiri, lalu jawab soal di kanan.
+                   </div>
+
+                   <div className="bg-white/95 rounded-3xl shadow-xl border-2 border-orange-200 overflow-hidden flex flex-col md:flex-row flex-1 min-h-0">
+                       {/* Panel Kiri: Stimulus */}
+                       <div className="md:w-1/2 bg-orange-50 p-4 md:p-6 xl:p-8 border-b md:border-b-0 md:border-r border-orange-200 flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
+                           <h3 className="font-black text-orange-800 mb-3 xl:mb-5 flex items-center gap-3 text-base md:text-lg xl:text-2xl flex-shrink-0">
+                               {currentQ.stimulusTitle}
+                           </h3>
+                           <div className="text-gray-700 text-sm md:text-base xl:text-xl whitespace-pre-wrap leading-relaxed font-medium bg-white p-4 md:p-6 xl:p-8 rounded-2xl border border-orange-100 shadow-sm flex-1">
+                               {currentQ.stimulusText}
+                           </div>
+                       </div>
+                       
+                       {/* Panel Kanan: Soal */}
+                       <div className="md:w-1/2 p-4 md:p-6 xl:p-8 flex flex-col min-h-0">
+                           <div className="text-xs md:text-sm xl:text-base font-bold text-gray-400 uppercase tracking-wider mb-1 xl:mb-3 flex-shrink-0">Soal {currentQIndex + 1} dari {flatQuestions.length}</div>
+                           <p className="font-bold text-gray-800 text-base md:text-lg xl:text-2xl leading-relaxed mb-4 xl:mb-6 flex-shrink-0">{currentQ.text}</p>
+                           
+                           <div className="space-y-3 xl:space-y-4 flex-grow overflow-y-auto custom-scrollbar pr-2">
+                               {currentQ.options.map((opt, oIdx) => {
+                                   const isSelected = currentQ.type === 'single' ? answers[currentQ.id] === oIdx : (answers[currentQ.id] || []).includes(oIdx);
+                                   let btnClass = `w-full text-left px-4 py-3 md:px-5 md:py-4 xl:py-5 rounded-xl border text-sm md:text-base xl:text-xl font-medium transition-all flex items-start gap-4 ${isSelected ? 'border-sky-500 bg-sky-50 shadow-sm ring-2 ring-sky-300' : 'border-gray-200 hover:bg-gray-50'}`;
+                                   const shapeClass = currentQ.type === 'single' ? 'rounded-full' : 'rounded-md';
+
+                                   return (
+                                       <button key={oIdx} onClick={() => currentQ.type === 'single' ? handleSingle(currentQ.id, oIdx) : handleMultiple(currentQ.id, oIdx)} className={btnClass}>
+                                           <div className={`mt-0.5 md:mt-1 flex-shrink-0 w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8 border-2 ${shapeClass} flex items-center justify-center transition-colors ${isSelected ? 'border-sky-600 bg-sky-500' : 'border-gray-300 bg-white'}`}>
+                                               {isSelected && (currentQ.type === 'single' ? <div className="w-2 h-2 md:w-2.5 md:h-2.5 xl:w-3.5 xl:h-3.5 bg-white rounded-full" /> : <Icons.CheckCircle className="w-4 h-4 md:w-5 md:h-5 xl:w-6 xl:h-6 text-white" />)}
+                                           </div>
+                                           <span className="flex-1 leading-snug">{opt}</span>
+                                       </button>
+                                   );
+                               })}
+                           </div>
+
+                           {/* Navigasi Soal */}
+                           <div className="flex justify-between items-center gap-3 mt-4 xl:mt-6 pt-4 border-t border-gray-100 flex-shrink-0">
+                               <button onClick={handlePrev} disabled={currentQIndex === 0} className={`py-3 px-4 xl:py-4 xl:px-6 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${currentQIndex === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 shadow-sm'}`}>
+                                   <Icons.ArrowRight className="w-5 h-5 xl:w-7 xl:h-7 rotate-180" /> <span className="hidden sm:inline">Sebelumnya</span>
+                               </button>
+                               
+                               {currentQIndex < flatQuestions.length - 1 ? (
+                                   <button onClick={handleNext} disabled={!isCurrentAnswered} className={`py-3 px-6 xl:py-4 xl:px-10 rounded-2xl font-black flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${!isCurrentAnswered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-b from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white shadow-[0_5px_0_#0284c7] active:shadow-none active:translate-y-1'}`}>
+                                       <span className="hidden sm:inline">Selanjutnya</span> <Icons.ArrowRight className="w-5 h-5 xl:w-7 xl:h-7" />
+                                   </button>
+                               ) : (
+                                   <button onClick={handleSubmit} disabled={!isCurrentAnswered} className={`py-3 px-6 xl:py-4 xl:px-10 rounded-2xl font-black flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${!isCurrentAnswered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-b from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white shadow-[0_5px_0_#c2410c] active:shadow-none active:translate-y-1'}`}>
+                                       <Icons.CheckCircle className="w-5 h-5 xl:w-7 xl:h-7" /> Kumpulkan
+                                   </button>
+                               )}
+                           </div>
+                       </div>
+                   </div>
+                </div>
+            );
+        }
+
+        // --- LEVEL 3: KALIMANTAN (True/False & Reason) ---
+        function Level3Kalimantan({ onComplete, onCorrect }) {
+            const data = LEVEL_DATA[3];
+            const [answers, setAnswers] = useState({});
+            const [step, setStep] = useState('quiz'); 
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [scoreDetails, setScoreDetails] = useState(0);
+
+            const shuffledQuestions = React.useMemo(() => {
+                return data.questions.map(q => {
+                    const originalReasons = [...q.reasonOptions];
+                    const shuffledReasons = shuffleArray(originalReasons);
+                    const correctReasonText = originalReasons[q.correctReasonIndex];
+                    const newCorrectReasonIndex = shuffledReasons.indexOf(correctReasonText);
+
+                    return {
+                        ...q,
+                        reasonOptions: shuffledReasons,
+                        correctReasonIndex: newCorrectReasonIndex
+                    };
+                });
+            }, [data.questions]);
+
+            const currentQ = shuffledQuestions[currentQIndex];
+
+            const handleStatement = (qId, statement) => { setAnswers(prev => ({ ...prev, [qId]: { ...prev[qId], statement } })); };
+            const handleReason = (qId, reasonIdxStr) => {
+                const reasonIdx = parseInt(reasonIdxStr);
+                setAnswers(prev => ({ ...prev, [qId]: { ...prev[qId], reasonIdx } }));
+            };
+
+            const isCurrentAnswered = answers[currentQ.id]?.statement !== undefined && answers[currentQ.id]?.reasonIdx !== undefined && !isNaN(answers[currentQ.id]?.reasonIdx);
+
+            const handleNext = () => { if (currentQIndex < shuffledQuestions.length - 1) setCurrentQIndex(prev => prev + 1); };
+            const handlePrev = () => { if (currentQIndex > 0) setCurrentQIndex(prev => prev - 1); };
+
+            const handleSubmit = () => {
+                let correctAns = 0;
+                shuffledQuestions.forEach(q => {
+                    const userAns = answers[q.id];
+                    if (userAns && userAns.statement === q.correctStatement && userAns.reasonIdx === q.correctReasonIndex) correctAns++;
+                });
+
+                if (correctAns === shuffledQuestions.length) playSfx('correct');
+                else playSfx('incorrect');
+
+                setScoreDetails(correctAns);
+                setStep('feedback');
+            };
+
+            const handleRetry = () => { setAnswers({}); setCurrentQIndex(0); setScoreDetails(0); setStep('quiz'); };
+            const handleProceed = () => { for(let i = 0; i < scoreDetails; i++) { if (onCorrect) onCorrect(); } onComplete(); };
+
+            if (step === 'feedback') {
+                return (
+                    <div className="flex flex-col h-full w-full max-w-5xl mx-auto pb-4 animate-fade-in justify-center">
+                        
+                        <div className="bg-white/95 p-8 md:p-10 xl:p-14 rounded-3xl shadow-xl border-4 border-green-200 text-center mt-4">
+                            <Icons.Award className="w-20 h-20 xl:w-28 xl:h-28 text-yellow-500 mx-auto animate-bounce-slow mb-3" />
+                            <h3 className="text-3xl xl:text-5xl font-black text-gray-800 mb-3 xl:mb-5">Hasil Analisis Kalimat</h3>
+                            <p className="text-xl xl:text-3xl font-bold text-gray-600 mb-8 xl:mb-12">Kamu menjawab <span className="text-green-600 text-4xl xl:text-6xl mx-2">{scoreDetails}</span> dari {shuffledQuestions.length} soal dengan sempurna!</p>
+                            
+                            <div className="space-y-4 xl:space-y-6 text-left max-h-[40vh] overflow-y-auto custom-scrollbar pr-3 mb-8 xl:mb-10">
+                                {shuffledQuestions.map((q) => {
+                                    const userAns = answers[q.id];
+                                    const isCorrect = userAns?.statement === q.correctStatement && userAns?.reasonIdx === q.correctReasonIndex;
+
+                                    return (
+                                        <div key={q.id} className={`p-4 xl:p-6 rounded-xl border-2 ${isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'}`}>
+                                            <div className="flex gap-3 xl:gap-5 items-start mb-2 xl:mb-4">
+                                                {isCorrect ? <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8 text-green-600 flex-shrink-0 mt-0.5" /> : <Icons.X className="w-6 h-6 xl:w-8 xl:h-8 text-red-600 flex-shrink-0 mt-0.5" />}
+                                                <p className="font-bold text-gray-800 text-sm md:text-base xl:text-xl">{q.text}</p>
+                                            </div>
+                                            <div className="ml-9 xl:ml-13 space-y-1 xl:space-y-2 text-sm md:text-base xl:text-xl">
+                                                <p className="text-gray-600">
+                                                    Pernyataan: <span className={userAns?.statement === q.correctStatement ? 'text-green-700 font-bold' : 'text-red-600 font-bold line-through'}>{userAns?.statement || '-'}</span>
+                                                    {!isCorrect && userAns?.statement !== q.correctStatement && <span className="text-green-700 font-bold ml-2">({q.correctStatement})</span>}
+                                                </p>
+                                                <p className="text-gray-600 mt-1">
+                                                    Alasan: <span className={userAns?.reasonIdx === q.correctReasonIndex ? 'text-green-700 font-bold' : 'text-red-600 font-bold line-through'}>{userAns?.reasonIdx !== undefined && !isNaN(userAns?.reasonIdx) ? q.reasonOptions[userAns.reasonIdx] : '-'}</span>
+                                                    {!isCorrect && userAns?.reasonIdx !== q.correctReasonIndex && <span className="text-green-700 font-bold ml-2 block mt-1">✓ {q.reasonOptions[q.correctReasonIndex]}</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-5 justify-center">
+                                {scoreDetails < shuffledQuestions.length && (
+                                    <button onClick={handleRetry} className="bg-yellow-500 hover:bg-yellow-600 text-white font-black py-4 px-10 xl:py-6 xl:px-14 rounded-2xl shadow-[0_6px_0_#ca8a04] active:shadow-none active:translate-y-2 transition-all text-lg md:text-xl xl:text-2xl flex items-center justify-center gap-3">
+                                        <Icons.RefreshCcw className="w-6 h-6 xl:w-8 xl:h-8" /> Coba Lagi
+                                    </button>
+                                )}
+                                <button onClick={handleProceed} className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-black py-4 px-10 xl:py-6 xl:px-14 rounded-2xl shadow-[0_6px_0_#15803d] active:shadow-none active:translate-y-2 transition-all text-lg md:text-xl xl:text-2xl flex items-center justify-center gap-3">
+                                    Lanjut Perjalanan 🚀
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto flex-1 min-h-0">
+                   <div className="bg-blue-100 text-blue-800 p-3 xl:p-4 rounded-xl text-center font-bold text-sm md:text-base xl:text-xl border-l-4 border-blue-500 shadow-sm flex items-center justify-center gap-3 mb-4 flex-shrink-0">
+                     <Icons.BookOpen className="w-5 h-5 xl:w-7 xl:h-7" /> Baca teks stimulus di kiri, lalu pilih Benar/Salah dan Alasannya di kanan.
+                   </div>
+
+                   <div className="bg-white/95 rounded-3xl shadow-xl border-2 border-green-200 overflow-hidden flex flex-col md:flex-row flex-1 min-h-0">
+                       
+                       {/* Panel Kiri: Stimulus */}
+                       <div className="md:w-1/2 bg-green-50 p-4 md:p-6 xl:p-8 border-b md:border-b-0 md:border-r border-green-200 flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
+                           <h3 className="font-black text-green-800 mb-3 xl:mb-5 flex items-center gap-3 text-base md:text-lg xl:text-2xl flex-shrink-0">
+                               {data.stimulusTitle}
+                           </h3>
+                           <div className="text-gray-700 text-sm md:text-base xl:text-xl whitespace-pre-wrap leading-relaxed font-medium bg-white p-4 md:p-6 xl:p-8 rounded-2xl border border-green-100 shadow-sm flex-1">
+                               {data.stimulusText}
+                           </div>
+                       </div>
+                       
+                       {/* Panel Kanan: Soal */}
+                       <div className="md:w-1/2 p-4 md:p-6 xl:p-8 flex flex-col min-h-0">
+                           <div className="text-xs md:text-sm xl:text-base font-bold text-gray-400 uppercase tracking-wider mb-1 xl:mb-3 flex-shrink-0">Soal {currentQIndex + 1} dari {shuffledQuestions.length}</div>
+                           <p className="font-bold text-gray-800 text-base md:text-lg xl:text-2xl leading-relaxed mb-4 xl:mb-6 flex-shrink-0">{currentQ.text}</p>
+                           
+                           <div className="space-y-4 xl:space-y-6 flex-grow overflow-y-auto custom-scrollbar pr-2">
+                               <div className="space-y-2 xl:space-y-4">
+                                   <label className="block text-sm md:text-base xl:text-xl font-bold text-gray-600">Pernyataan tersebut:</label>
+                                   <div className="flex gap-3 xl:gap-5">
+                                       <button onClick={() => handleStatement(currentQ.id, 'Benar')} className={`flex-1 py-3 xl:py-5 rounded-xl border-2 font-bold text-base xl:text-xl transition-all ${answers[currentQ.id]?.statement === 'Benar' ? 'bg-green-500 border-green-600 text-white shadow-inner' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-green-300 hover:bg-green-50'}`}>
+                                           Benar
+                                       </button>
+                                       <button onClick={() => handleStatement(currentQ.id, 'Salah')} className={`flex-1 py-3 xl:py-5 rounded-xl border-2 font-bold text-base xl:text-xl transition-all ${answers[currentQ.id]?.statement === 'Salah' ? 'bg-red-500 border-red-600 text-white shadow-inner' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-red-300 hover:bg-red-50'}`}>
+                                           Salah
+                                       </button>
+                                   </div>
+                               </div>
+
+                               <div className="space-y-2 xl:space-y-4 pt-3 xl:pt-5 border-t border-gray-100">
+                                   <label className="block text-sm md:text-base xl:text-xl font-bold text-gray-600">Pilih Alasannya:</label>
+                                   <div className="relative">
+                                       <select 
+                                            value={answers[currentQ.id]?.reasonIdx !== undefined ? answers[currentQ.id].reasonIdx : ""} 
+                                            onChange={(e) => handleReason(currentQ.id, e.target.value)} 
+                                            className="w-full p-3 md:p-4 xl:p-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-sm md:text-base xl:text-xl font-medium text-gray-700 outline-none focus:border-green-400 focus:bg-white transition-all appearance-none cursor-pointer"
+                                       >
+                                           <option value="" disabled>-- Klik di sini untuk memilih alasan --</option>
+                                           {currentQ.reasonOptions.map((opt, idx) => (
+                                               <option key={idx} value={idx}>{opt}</option>
+                                           ))}
+                                       </select>
+                                       <div className="absolute right-4 xl:right-6 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                                           <Icons.ArrowRight className="w-4 h-4 xl:w-6 xl:h-6 text-gray-400 rotate-90" />
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+
+                           {/* Navigasi Soal */}
+                           <div className="flex justify-between items-center gap-3 mt-4 xl:mt-6 pt-4 border-t border-gray-100 flex-shrink-0">
+                               <button onClick={handlePrev} disabled={currentQIndex === 0} className={`py-3 px-4 xl:py-4 xl:px-6 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${currentQIndex === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 shadow-sm'}`}>
+                                   <Icons.ArrowRight className="w-5 h-5 xl:w-7 xl:h-7 rotate-180" /> <span className="hidden sm:inline">Sebelumnya</span>
+                               </button>
+                               
+                               {currentQIndex < shuffledQuestions.length - 1 ? (
+                                   <button onClick={handleNext} disabled={!isCurrentAnswered} className={`py-3 px-6 xl:py-4 xl:px-10 rounded-2xl font-black flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${!isCurrentAnswered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-b from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white shadow-[0_5px_0_#0284c7] active:shadow-none active:translate-y-1'}`}>
+                                       <span className="hidden sm:inline">Selanjutnya</span> <Icons.ArrowRight className="w-5 h-5 xl:w-7 xl:h-7" />
+                                   </button>
+                               ) : (
+                                   <button onClick={handleSubmit} disabled={!isCurrentAnswered} className={`py-3 px-6 xl:py-4 xl:px-10 rounded-2xl font-black flex items-center gap-2 transition-all text-sm md:text-base xl:text-xl ${!isCurrentAnswered ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-b from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white shadow-[0_5px_0_#c2410c] active:shadow-none active:translate-y-1'}`}>
+                                       <Icons.CheckCircle className="w-5 h-5 xl:w-7 xl:h-7" /> Kumpulkan
+                                   </button>
+                               )}
+                           </div>
+                       </div>
+                   </div>
+                </div>
+            );
+        }
+
+        // --- LEVEL 4: SULAWESI (Paragraf Rumpang) ---
+        function Level4Sulawesi({ onComplete, onCorrect }) {
+            const data = LEVEL_DATA[4];
+            const [droppedWords, setDroppedWords] = useState({}); 
+            const [availableWords, setAvailableWords] = useState([]);
+            const [selectedWord, setSelectedWord] = useState(null);
+            const [dragOverBlank, setDragOverBlank] = useState(null);
+            const [feedbackMsg, setFeedbackMsg] = useState("");
+            const [completed, setCompleted] = useState(false);
+
+            useEffect(() => {
+                setAvailableWords(shuffleArray(data.words));
+                setDroppedWords({});
+            }, [data.words]);
+
+            const handleDragStart = (e, word, sourceBlankId = null) => {
+                e.dataTransfer.setData("word", JSON.stringify(word));
+                e.dataTransfer.setData("source", sourceBlankId || "pool");
+            };
+
+            const handleDropOnBlank = (e, blankId) => {
+                e.preventDefault();
+                setDragOverBlank(null);
+                const wordData = e.dataTransfer.getData("word");
+                const source = e.dataTransfer.getData("source");
+                
+                if (wordData) {
+                    const word = JSON.parse(wordData);
+                    setAvailableWords(prev => prev.filter(w => w.id !== word.id));
+                    setDroppedWords(prev => {
+                        const newDropped = { ...prev };
+                        if (source !== "pool" && source !== blankId) delete newDropped[source];
+                        if (newDropped[blankId]) setAvailableWords(avail => [...avail, newDropped[blankId]]);
+                        newDropped[blankId] = word;
+                        return newDropped;
+                    });
+                    setFeedbackMsg("");
+                    setSelectedWord(null);
+                }
+            };
+
+            const handleDropOnPool = (e) => {
+                e.preventDefault();
+                const wordData = e.dataTransfer.getData("word");
+                const source = e.dataTransfer.getData("source");
+                
+                if (wordData && source !== "pool") {
+                    const word = JSON.parse(wordData);
+                    setDroppedWords(prev => {
+                        const newDropped = { ...prev };
+                        delete newDropped[source];
+                        return newDropped;
+                    });
+                    setAvailableWords(prev => {
+                        if (!prev.find(w => w.id === word.id)) return [...prev, word];
+                        return prev;
+                    });
+                    setFeedbackMsg("");
+                }
+            };
+            
+            const handleWordClick = (word) => { setSelectedWord(selectedWord?.id === word.id ? null : word); };
+
+            const handleBlankClick = (blankId) => {
+                if (selectedWord) {
+                    if (droppedWords[blankId]) setAvailableWords(prev => [...prev, droppedWords[blankId]]);
+                    setDroppedWords(prev => ({...prev, [blankId]: selectedWord}));
+                    setAvailableWords(prev => prev.filter(w => w.id !== selectedWord.id));
+                    setSelectedWord(null);
+                    setFeedbackMsg("");
+                } else if (droppedWords[blankId]) {
+                    setAvailableWords(prev => [...prev, droppedWords[blankId]]);
+                    setDroppedWords(prev => {
+                        const newDropped = {...prev};
+                        delete newDropped[blankId];
+                        return newDropped;
+                    });
+                    setFeedbackMsg("");
+                }
+            };
+
+            const handleCheckAnswer = () => {
+                let isAllCorrect = true;
+                let totalBlanks = 0;
+                let filledBlanks = 0;
+
+                data.paragraphs.forEach(p => {
+                    p.sentences.forEach(s => {
+                        totalBlanks++;
+                        const dropped = droppedWords[s.blankId];
+                        if (dropped) {
+                            filledBlanks++;
+                            if (dropped.text !== s.correct) isAllCorrect = false;
+                        } else {
+                            isAllCorrect = false;
+                        }
+                    });
+                });
+
+                if (filledBlanks < totalBlanks) {
+                    setFeedbackMsg("Isi semua bagian rumpang terlebih dahulu ya!");
+                    return;
+                }
+
+                if (isAllCorrect) {
+                    playSfx('correct');
+                    for(let i=0; i<5; i++) { if (onCorrect) onCorrect(); }
+                    setCompleted(true);
+                } else {
+                    playSfx('incorrect');
+                    setFeedbackMsg("Masih ada kata yang belum tepat. Silakan klik kata di paragraf untuk mengembalikannya ke kotak pilihan, lalu coba lagi!");
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-full w-full max-w-5xl mx-auto flex-1 min-h-0">
+                   {!completed ? (
+                       <div className="bg-white/95 rounded-3xl shadow-xl border-2 border-purple-200 flex flex-col flex-1 min-h-0 mt-4 overflow-hidden">
+                           
+                           <div className="w-full p-4 md:p-8 xl:p-12 flex flex-col flex-1 min-h-0">
+                               <div className="mb-4 text-center border-b pb-4 border-purple-200 flex-shrink-0">
+                                   <h3 className="font-black text-purple-800 text-base md:text-lg xl:text-3xl">{data.stimulusTitle}</h3>
+                                   <p className="text-gray-600 font-bold text-sm xl:text-xl mt-1">{data.stimulusText}</p>
+                               </div>
+
+                               <div className="bg-purple-100 p-4 md:p-6 xl:p-8 rounded-xl mb-4 xl:mb-8 text-center border-2 border-dashed border-purple-300 flex-shrink-0"
+                                    onDragOver={(e) => { e.preventDefault(); }}
+                                    onDrop={handleDropOnPool}
+                               >
+                                   <p className="text-sm md:text-base xl:text-xl font-bold text-purple-800 mb-3 xl:mb-5">PILIHAN KATA (Tarik atau Klik kata ini):</p>
+                                   <div className="flex flex-wrap gap-3 xl:gap-5 justify-center">
+                                       {availableWords.map(word => (
+                                            <div 
+                                                key={word.id} 
+                                                draggable 
+                                                onDragStart={(e) => handleDragStart(e, word)}
+                                                onClick={() => handleWordClick(word)}
+                                                className={`px-4 py-2 md:px-6 md:py-3 xl:px-8 xl:py-4 rounded-lg border-2 font-bold text-sm md:text-base xl:text-2xl cursor-grab active:cursor-grabbing shadow-sm transition-all select-none ${selectedWord?.id === word.id ? 'bg-purple-500 border-purple-600 text-white scale-105' : 'bg-white text-gray-700 border-purple-300 hover:border-purple-400 hover:bg-purple-50'}`}
+                                            >
+                                                {word.text}
+                                            </div>
+                                       ))}
+                                       {availableWords.length === 0 && <span className="text-sm xl:text-lg text-gray-500 italic mt-3">Semua kata sudah digunakan.</span>}
+                                   </div>
+                               </div>
+
+                               <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-5">
+                                    {data.paragraphs.map(p => (
+                                        <div key={p.id} className="bg-gray-50 p-5 xl:p-8 rounded-2xl border border-gray-200">
+                                            {p.title && <h4 className="text-sm xl:text-lg font-bold text-gray-400 mb-3 xl:mb-5">{p.title}</h4>}
+                                            <p className="text-base md:text-lg xl:text-3xl leading-[2.5] xl:leading-[2.8] text-gray-800 font-medium">
+                                                {p.sentences.map(s => (
+                                                    <span key={s.id}>
+                                                        {s.before}
+                                                        <span 
+                                                            onClick={() => handleBlankClick(s.blankId)}
+                                                            onDragOver={(e) => { e.preventDefault(); setDragOverBlank(s.blankId); }}
+                                                            onDragLeave={() => setDragOverBlank(null)}
+                                                            onDrop={(e) => handleDropOnBlank(e, s.blankId)}
+                                                            className={`inline-block mx-1 xl:mx-2 min-w-[120px] xl:min-w-[180px] h-8 md:h-10 xl:h-14 text-center align-middle rounded-lg border-b-4 cursor-pointer transition-all ${
+                                                                dragOverBlank === s.blankId ? 'bg-sky-100 border-sky-400' : 'bg-gray-100 border-gray-300 border-dashed'
+                                                            } ${droppedWords[s.blankId] ? 'bg-sky-500 border-sky-600 text-white font-bold shadow-inner' : ''}`}
+                                                        >
+                                                            {droppedWords[s.blankId] ? droppedWords[s.blankId].text : ''}
+                                                        </span>
+                                                        {s.after}
+                                                    </span>
+                                                ))}
+                                            </p>
+                                        </div>
+                                    ))}
+                               </div>
+
+                               <div className="mt-5 xl:mt-8 flex flex-col items-center flex-shrink-0">
+                                   {feedbackMsg && <p className="text-red-600 font-bold text-sm md:text-base xl:text-xl mb-4 bg-red-100 px-5 py-3 xl:px-8 xl:py-4 rounded-xl border border-red-200 text-center">{feedbackMsg}</p>}
+                                   <button onClick={handleCheckAnswer} className="bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-4 px-10 xl:py-6 xl:px-16 rounded-2xl shadow-[0_6px_0_#1d4ed8] active:shadow-none active:translate-y-2 transition-all text-base md:text-lg xl:text-2xl flex items-center justify-center gap-3 w-full md:w-auto">
+                                       <Icons.CheckCircle className="w-6 h-6 xl:w-8 xl:h-8" /> Cek Jawaban
+                                   </button>
+                               </div>
+                           </div>
+                       </div>
+                   ) : (
+                       <div className="bg-white/95 p-8 md:p-12 xl:p-16 rounded-3xl shadow-xl text-center space-y-6 border border-green-100 max-w-4xl mx-auto animate-fade-in mt-10">
+                         <div className="w-20 h-20 xl:w-28 xl:h-28 bg-green-100 rounded-full flex items-center justify-center mx-auto text-4xl xl:text-6xl shadow-inner">🎉</div>
+                         <div>
+                             <h3 className="text-2xl md:text-4xl xl:text-5xl font-black text-green-800 uppercase tracking-wider mb-4">Luar Biasa!</h3>
+                             <p className="text-lg md:text-xl xl:text-3xl font-bold text-gray-700 leading-relaxed">Kamu telah menyelesaikan misi di Area 4 dengan sempurna.</p>
+                         </div>
+                         <button onClick={onComplete} className="bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-black w-full py-5 xl:py-6 text-xl xl:text-3xl rounded-2xl shadow-[0_6px_0_#166534] active:shadow-none active:translate-y-2 transition-all mt-4">Lanjut Perjalanan 🚀</button>
+                       </div>
+                   )}
+                </div>
+            );
+        }
+
+        // --- LEVEL 5: PAPUA (Sentence Transformation) ---
+        function Level5Papua({ onComplete, saveRef, saveData }) {
+            const data = LEVEL_DATA[5];
+            const [answers, setAnswers] = useState({});
+            const [reflection, setReflection] = useState("");
+            const [step, setStep] = useState('project');
+
+            const handleInputChange = (index, type, value) => {
+                setAnswers(prev => ({
+                    ...prev,
+                    [`q${index}_${type}`]: value
+                }));
+            };
+
+            const handleSubmitProject = () => { 
+                let allFilled = true;
+                for (let i = 0; i < data.sentences.length; i++) {
+                    if (!answers[`q${i}_neg`] || !answers[`q${i}_int`]) {
+                        allFilled = false;
+                        break;
+                    }
+                }
+
+                if (!allFilled) {
+                    alert("Wah, sepertinya masih ada kalimat yang belum diisi. Lengkapi semuanya dulu ya!");
+                    return;
+                }
+                playSfx('correct');
+                saveData('final_project', answers); 
+                setStep('reflection');
+            };
+            
+            const handleFinish = () => {
+                saveRef(reflection); 
+                onComplete();
+            };
+
+            if (step === 'reflection') {
+                return (
+                    <div className="flex flex-col h-full w-full justify-center">
+                        <ReflectionSection question={data.reflection} value={reflection} onChange={setReflection} onNext={handleFinish} />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col h-full w-full max-w-7xl mx-auto flex-1 min-h-0 pb-4">
+                   <div className="bg-blue-100 text-blue-800 p-3 xl:p-4 rounded-xl text-center font-bold text-sm md:text-base xl:text-xl border-l-4 border-blue-500 shadow-sm flex items-center justify-center gap-3 mb-4 flex-shrink-0">
+                     <Icons.BookOpen className="w-5 h-5 xl:w-7 xl:h-7" /> Kerjakan misi terakhirmu!
+                   </div>
+
+                   <div className="bg-white/95 rounded-3xl shadow-xl border-2 border-red-200 overflow-hidden flex flex-col md:flex-row flex-1 min-h-0">
+                        {/* Panel Kiri: Instruksi */}
+                        <div className="md:w-4/12 bg-red-50 p-4 md:p-6 xl:p-10 border-b md:border-b-0 md:border-r border-red-200 flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
+                            <h3 className="font-black text-red-800 mb-3 xl:mb-5 flex items-center gap-3 text-base md:text-lg xl:text-2xl flex-shrink-0">
+                                <Icons.BookOpen className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8" /> {data.stimulusTitle}
+                            </h3>
+                            <div className="text-gray-700 text-sm md:text-base xl:text-xl whitespace-pre-wrap leading-relaxed font-medium bg-white p-4 md:p-6 xl:p-8 rounded-2xl border border-red-100 shadow-sm mb-6 flex-1">
+                                {data.stimulusText}
+                            </div>
+                        </div>
+
+                        {/* Panel Kanan: Form Misi */}
+                        <div className="md:w-8/12 p-4 md:p-6 xl:p-10 flex flex-col bg-white min-h-0">
+                            <div className="space-y-6 flex-grow overflow-y-auto custom-scrollbar pr-2 pb-6">
+                                {data.sentences.map((sentence, idx) => (
+                                    <div key={idx} className="bg-white p-4 xl:p-6 rounded-xl border border-gray-200 shadow-sm">
+                                        <p className="font-black text-gray-800 text-sm md:text-base xl:text-2xl mb-3">
+                                            {idx + 1}. (+) {sentence}
+                                        </p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-bold text-red-500 text-lg xl:text-2xl">(-)</span>
+                                                <input type="text" placeholder="Negative sentence..." 
+                                                    className="flex-1 p-2 md:p-3 xl:p-4 rounded-lg border border-gray-300 bg-gray-50 focus:border-red-400 outline-none text-sm md:text-base xl:text-xl"
+                                                    value={answers[`q${idx}_neg`] || ""} 
+                                                    onChange={(e) => handleInputChange(idx, 'neg', e.target.value)} 
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-bold text-blue-500 text-lg xl:text-2xl">(?)</span>
+                                                <input type="text" placeholder="Interrogative sentence..." 
+                                                    className="flex-1 p-2 md:p-3 xl:p-4 rounded-lg border border-gray-300 bg-gray-50 focus:border-blue-400 outline-none text-sm md:text-base xl:text-xl"
+                                                    value={answers[`q${idx}_int`] || ""} 
+                                                    onChange={(e) => handleInputChange(idx, 'int', e.target.value)} 
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="pt-4 xl:pt-6 flex justify-end flex-shrink-0 border-t border-gray-100 mt-4">
+                                <button onClick={handleSubmitProject} className="bg-red-500 hover:bg-red-600 text-white font-black py-4 px-10 xl:py-5 xl:px-14 rounded-2xl text-base md:text-lg xl:text-2xl shadow-[0_6px_0_#b91c1c] active:shadow-none active:translate-y-2 transition-all flex items-center justify-center gap-3 w-full md:w-auto">
+                                    <Icons.Save className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8" /> Selesai Mengubah Kalimat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- END SCREEN ---
+        function EndScreen({ userData, correctCount, onRestart, playerName, playerSchool }) {
+            const [isSaving, setIsSaving] = useState(false);
+            const [saveStatus, setSaveStatus] = useState("idle"); 
+
+            const handleSaveToGoogleSheets = async () => {
+                if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("MASUKKAN_URL")) return alert("URL Google Script belum dipasang.");
+                setIsSaving(true);
+                
+                const payload = {
+                    nama: playerName, sekolah: playerSchool, skor: correctCount, benar: correctCount,
+                    ref1: "-", ref2: "-", ref3: "-", ref4: "-",
+                    papua_masalah: "Transformasi 10 Kalimat Simple Present Tense",
+                    papua_solusi: userData.final_project ? JSON.stringify(userData.final_project).substring(0, 500) + "..." : "-",
+                    papua_kampanye: "-",
+                };
+                
+                try {
+                    await fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                    setSaveStatus("success");
+                } catch (error) { setSaveStatus("error"); } finally { setIsSaving(false); }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center gap-6 xl:gap-10 animate-fade-in w-full flex-1">
+                  <div className="text-center bg-white/90 p-6 md:p-10 xl:p-14 rounded-3xl shadow-lg w-full max-w-2xl xl:max-w-4xl border-2 border-white">
+                    <Icons.Award className="w-20 h-20 md:w-28 md:h-28 xl:w-40 xl:h-40 text-yellow-500 mx-auto animate-bounce-slow" />
+                    <h2 className="text-3xl md:text-5xl xl:text-7xl font-black text-gray-800 mt-4 xl:mt-8">CONGRATULATIONS!</h2>
+                    <p className="text-base md:text-xl xl:text-3xl font-bold mt-2 xl:mt-4">{playerName}, <span className="text-sky-600">English Master</span></p>
+                    <div className="text-xl md:text-2xl xl:text-4xl font-black text-gray-600 mt-6 xl:mt-10">
+                        Menjawab Benar <br/><span className="text-4xl md:text-6xl xl:text-8xl text-yellow-500 text-outline inline-block mt-2">{correctCount} / 21</span> Soal
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-2xl xl:max-w-4xl bg-white p-6 md:p-10 xl:p-12 rounded-3xl shadow-2xl border-4 border-yellow-300 relative text-base">
+                    <div className="text-center border-b-2 border-gray-100 pb-4 xl:pb-6 mb-4 xl:mb-6">
+                      <h3 className="font-black text-xl md:text-3xl xl:text-4xl text-gray-800">SERTIFIKAT KELULUSAN</h3>
+                      <p className="text-sky-600 font-bold text-lg md:text-xl xl:text-2xl mt-1 xl:mt-2">{playerName} - {playerSchool}</p>
+                    </div>
+                    <div className="space-y-3 xl:space-y-5 max-h-48 xl:max-h-80 overflow-y-auto pr-3 custom-scrollbar text-sm md:text-base xl:text-xl">
+                      <p className="bg-orange-50 p-4 xl:p-6 rounded-xl border border-orange-100"><b className="text-orange-800 block mb-1 xl:mb-2">Refleksi Akhir:</b> "{userData.ref5 || '-'}"</p>
+                      <p className="bg-red-50 p-4 xl:p-6 rounded-xl border border-red-100"><b className="text-red-800 block mb-1 xl:mb-2">Misi Area 5:</b> "Selesai mengerjakan transformasi 10 kalimat Bahasa Inggris."</p>
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-2xl xl:max-w-4xl space-y-4 xl:space-y-6 mt-4">
+                    {saveStatus === 'idle' && <button onClick={handleSaveToGoogleSheets} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white font-black w-full py-5 xl:py-6 rounded-2xl flex items-center justify-center gap-3 text-lg md:text-xl xl:text-2xl shadow-[0_6px_0_#1e40af] active:shadow-none active:translate-y-2 transition-all">{isSaving ? "Menyimpan..." : <><Icons.Save className="w-6 h-6 xl:w-8 xl:h-8"/> Simpan Nilai ke Guru</>}</button>}
+                    {saveStatus === 'success' && <div className="bg-green-100 text-green-800 p-5 xl:p-6 rounded-2xl text-center font-bold text-lg xl:text-2xl border-2 border-green-300">Berhasil dikirim! ✅</div>}
+                    {saveStatus === 'error' && <div className="bg-red-100 text-red-800 p-5 xl:p-6 rounded-2xl text-center font-bold text-lg xl:text-2xl border-2 border-red-300">Gagal. <button onClick={()=>setSaveStatus('idle')} className="underline text-red-600 ml-2">Coba lagi</button></div>}
+                    <button onClick={onRestart} className="bg-green-500 hover:bg-green-600 text-white font-black w-full py-5 xl:py-6 rounded-2xl flex items-center justify-center gap-3 text-lg md:text-xl xl:text-2xl shadow-[0_6px_0_#166534] active:shadow-none active:translate-y-2 transition-all"><Icons.RefreshCcw className="w-6 h-6 xl:w-8 xl:h-8"/> Main Lagi</button>
+                  </div>
+                </div>
+            );
+        }
+
+        function ReflectionSection({ question, value, onChange, onNext }) {
+            return (
+                <div className="bg-white/95 p-8 md:p-12 xl:p-16 rounded-3xl shadow-xl text-center space-y-6 xl:space-y-8 border border-purple-100 w-full max-w-5xl mx-auto animate-fade-in my-auto">
+                  <div className="w-20 h-20 xl:w-28 xl:h-28 bg-purple-100 rounded-full flex items-center justify-center mx-auto text-4xl xl:text-6xl shadow-inner">📝</div>
+                  <div>
+                    <h3 className="text-2xl md:text-3xl xl:text-5xl font-black text-purple-800 mb-3 xl:mb-5 uppercase tracking-wider">Refleksi Akhir</h3>
+                    <p className="text-lg md:text-xl xl:text-3xl font-bold text-gray-700 leading-relaxed whitespace-pre-wrap">{question}</p>
+                  </div>
+                  <textarea value={value} onChange={(e) => onChange(e.target.value)} className="w-full p-5 xl:p-8 border-2 rounded-2xl text-lg md:text-xl xl:text-3xl bg-purple-50 outline-none focus:border-purple-400 h-40 md:h-48 xl:h-64 text-gray-800 font-medium transition-colors" placeholder="Tulis jawabanmu di sini..." />
+                  <button onClick={onNext} disabled={value.length < 5} className="bg-green-500 hover:bg-green-600 text-white font-black w-full py-5 xl:py-8 text-xl md:text-2xl xl:text-4xl rounded-2xl disabled:opacity-50 shadow-[0_6px_0_#166534] active:shadow-none active:translate-y-2 transition-all disabled:shadow-none disabled:translate-y-0 disabled:cursor-not-allowed">Selesaikan Petualangan 🚀</button>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PetualanganBhinneka />);
+    </script>
+</body>
+</html>
